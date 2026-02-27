@@ -1,0 +1,108 @@
+{
+	"folders": [
+		{
+			"name": "HealthBridge-Web",
+			"path": "HealthBridge-Web"
+		},
+		{
+			"name": "HealthBridge-Portal",
+			"path": "HealthBridge-Portal"
+		},
+		{
+			"name": "HealthBridge-Api",
+			"path": "HealthBridge-Api"
+		},
+		{
+			"name": "HealthBridge-Mobile",
+			"path": "HealthBridge-Mobile"
+		},
+		{
+			"name": "HealthBridge-Claims-Processing",
+			"path": "HealthBridge-Claims-Processing"
+		},
+		{
+			"name": "HealthBridge-Prescriptions-Api",
+			"path": "HealthBridge-Prescriptions-Api"
+		},
+		{
+			"name": "HealthBridge-Mobile-Tests",
+			"path": "HealthBridge-Mobile-Tests"
+		},
+		{
+			"name": "HealthBridge-Selenium-Tests",
+			"path": "HealthBridge-Selenium-Tests"
+		},
+		{
+			"name": "HealthBridge-E2E-Tests",
+			"path": "HealthBridge-E2E-Tests"
+		},
+		{
+			"path": "DEMO-QA-Agents"
+		}
+	],
+	"settings": {
+		"files.exclude": {
+			"**/.git": true,
+			"**/.DS_Store": true
+		},
+		"github.copilot.chat.codeGeneration.instructions": [
+			{
+				"file": "DEMO-QA-Agents/.github/copilot-instructions.md"
+			}
+		]
+	},
+	"tasks": {
+		"tasks": [
+			{
+				"label": "QA Agents: Update",
+				"type": "shell",
+				"command": "powershell -ExecutionPolicy Bypass -File DEMO-QA-Agents/setup/update.ps1",
+				"windows": {
+					"command": "powershell -ExecutionPolicy Bypass -File DEMO-QA-Agents\\setup\\update.ps1"
+				},
+				"osx": {
+					"command": "./DEMO-QA-Agents/setup/update.sh"
+				},
+				"linux": {
+					"command": "./DEMO-QA-Agents/setup/update.sh"
+				},
+				"options": {
+					"cwd": "${workspaceFolder:DEMO-QA-Agents}/.."
+				},
+				"problemMatcher": [],
+				"presentation": {
+					"reveal": "always",
+					"panel": "new"
+				}
+			},
+			{
+				"label": "QA Agents: Setup",
+				"type": "shell",
+				"command": "powershell -ExecutionPolicy Bypass -File DEMO-QA-Agents/setup/setup.ps1",
+				"windows": {
+					"command": "powershell -ExecutionPolicy Bypass -File DEMO-QA-Agents\\setup\\setup.ps1"
+				},
+				"osx": {
+					"command": "./DEMO-QA-Agents/setup/setup.sh"
+				},
+				"linux": {
+					"command": "./DEMO-QA-Agents/setup/setup.sh"
+				},
+				"options": {
+					"cwd": "${workspaceFolder:DEMO-QA-Agents}/.."
+				},
+				"problemMatcher": [],
+				"presentation": {
+					"reveal": "always",
+					"panel": "new"
+				}
+			}
+		]
+	},
+	"extensions": {
+		"recommendations": [
+			"github.copilot",
+			"github.copilot-chat"
+		]
+	}
+}

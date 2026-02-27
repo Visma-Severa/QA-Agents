@@ -1,0 +1,550 @@
+# HealthBridge QA Agents — Global Instructions
+
+This workspace contains multiple QA AI agents for the HealthBridge multi-repository health management platform.
+
+---
+
+## JIRA Ticket ID and Git Branch Naming Convention
+
+**JIRA is used for task management and defect tracking.** Every development task, bug fix, and feature request is tracked as a JIRA ticket with a unique ID.
+
+**The JIRA ticket ID MUST be used when creating Git branches.** This is the key mechanism that allows QA agents to automatically find the corresponding branch in any repository.
+
+| Ticket Prefix | Example | Repository Scope |
+|---------------|---------|-----------------|
+| `HM-*` | `HM-14200-prescription-renewal` | HealthBridge-Web, HealthBridge-Api, Claims-Processing, Prescriptions-Api |
+| `HBP-*` | `HBP-5001-portal-dashboard-fix` | HealthBridge-Portal |
+| `HMM-*` | `HMM-3200-mobile-appointment-view` | HealthBridge-Mobile |
+
+**Rules:**
+- Branch name **must start with or contain** the JIRA ticket ID (e.g., `HM-14200`, `HM-14200-feature-name`, `feature/HM-14200`)
+- Agents search for branches using `git branch -r --list "*<TICKET_ID>*"` — the ticket ID substring is sufficient
+- One JIRA ticket = one branch per repository (a ticket may span multiple repos)
+- Commit messages should also include the ticket ID for commit filtering
+
+---
+
+## Language & Communication Defaults
+
+- **Default output language: ENGLISH** — Always generate reports, analyses, and documentation in English unless explicitly requested otherwise.
+- If the user's input is in another language, still respond and generate documents in English.
+- Only use another language when the user explicitly requests it.
+
+---
+
+## Cross-Platform & Cross-IDE Compatibility
+
+**IMPORTANT:** These agents are used across multiple IDEs and operating systems:
+
+- **IDEs:** Claude Code, Cursor, VS Code Copilot Chat
+- **OS:** Windows, macOS, Linux
+
+### IDE Tool Mapping
+
+Each IDE provides equivalent capabilities. Use whatever your IDE offers:
+
+| Task | Claude Code | Cursor / VS Code Copilot | Fallback |
+|------|-------------|--------------------------|----------|
+| Search file contents | `Grep` tool | `grep_search` / Terminal: `git grep` | `git grep -n "pattern"` |
+| Find files by pattern | `Glob` tool | `file_search` / Terminal: `git ls-files` | `git ls-files "*.cs"` |
+| Read file contents | `Read` tool | `read_file` / Open file | `git show origin/branch:path` |
+| Execute commands | `Bash` tool | `runInTerminal` / Terminal panel | Terminal / Git Bash |
+
+### Use Git Built-in Flags (Cross-Platform)
+
+Prefer git's built-in flags over shell pipes — they work identically on all platforms:
+
+| Instead of Unix Pipe | Use Git Flag |
+|---------------------|--------------|
+| `git log \| grep -i "TICKET"` | `git log --grep="TICKET"` |
+| `git branch -r \| grep "pattern"` | `git branch -r --list "*pattern*"` |
+
+### Shell Commands That Work Cross-Platform
+
+These commands work on Windows (with Git Bash), macOS, and Linux:
+- `git log`, `git diff`, `git show`, `git branch` (all git commands)
+- `cd`, `ls` (basic navigation — Windows CMD uses `dir` instead of `ls`)
+
+### Windows-Specific Notes
+
+- Windows users should use **Git Bash** (installed with Git for Windows) for shell commands
+- Claude Code's `Grep`, `Glob`, and `Read` tools work on ALL platforms without shell dependencies
+- Cursor and VS Code Copilot terminal commands work via the IDE's integrated terminal
+
+---
+
+## Available QA Agents
+
+| Agent | Purpose | Invoke With | Details |
+|-------|---------|-------------|---------|
+| **Code Review** | Analyze PR/branch for code quality, test gaps, risks | `@hb-qa-code-review` | [qa-code-review.md](../agents/vscode-chat-participants/qa-code-review.md) |
+| **Acceptance Tests** | Generate Given/When/Then test scenarios | `@hb-qa-acceptance-tests` | [qa-acceptance-tests.md](../agents/vscode-chat-participants/qa-acceptance-tests.md) |
+| **Bug Report** | Analyze errors and generate ticket-ready bug reports | `@hb-qa-bug-report` | [qa-bug-report.md](../agents/vscode-chat-participants/qa-bug-report.md) |
+| **Bugfix RCA** | Root cause analysis for hotfixes | `@hb-bugfix-rca` | [bugfix-rca.md](../agents/vscode-chat-participants/bugfix-rca.md) |
+| **Requirements Analysis** | Pre-development requirements validation | `@hb-requirements-analysis` | [requirements-analysis.md](../agents/vscode-chat-participants/requirements-analysis.md) |
+| **Release Analysis** | Analyze weekly releases for risk and coverage | `@hb-release-analysis` | [release-analysis.md](../agents/vscode-chat-participants/release-analysis.md) |
+
+### Predictive Code Analysis
+
+The **Code Review Agent** includes **Predictive Bug Detection** — proactive analysis that scans code for patterns that historically cause production hotfixes:
+
+| Pattern Category | % of Hotfixes | Detection Examples |
+|------------------|---------------|-------------------|
+| Edge Cases | 28% | Empty patient list, boundary dates for prescription validity, zero-dose edge |
+| Authorization Gaps | 22% | Doctor accessing patient outside department, nurse role missing permission |
+| NULL Handling | 18% | Missing allergy data, null insurance provider, absent emergency contact |
+| Logic/Condition Errors | 16% | Drug interaction check skipped for single medication, overlapping appointment logic |
+| Data Validation | 10% | Invalid dosage format, expired medical license number, malformed ICD code |
+| Missing Implementation | 6% | TODO in discharge workflow, stub in referral processing |
+
+**Result:** Issues are flagged BEFORE merge, reducing hotfix rate.
+
+### False Positive Prevention Protocol
+
+The **Code Review Agent** applies a **mandatory 3-step False Positive Prevention Protocol** before reporting any finding:
+
+1. **Verify-Before-Flag** — Every finding must be backed by tool-verified evidence, not visual inspection of diffs
+2. **Before-vs-After Comparison** — Compare old code, new code, and surrounding code. Only flag if the change INTRODUCES a problem
+3. **Counter-Argument Check** — Argue against each finding before including it. If the counter-argument is stronger, drop the finding
+
+**Critical/Warning findings MUST include evidence** (tool output or code reference). Unverified findings are downgraded to Suggestions.
+
+**Reference:** `context/code-review-false-positive-prevention.md` (Rules 1-6)
+
+### Interactive Developer Feedback (Default)
+
+After generating the code review report, the agent starts an **interactive feedback loop** — presenting each finding to the developer with 4 options:
+- **Valid** / **False Positive** / **Won't Fix** / **Provide More Information**
+
+**"Provide More Information"** triggers deep analysis: the agent reads actual code, searches for sibling patterns, assesses probability and risk, and generates a detailed findings file.
+
+**This is always on.** To skip, use `--no-feedback`.
+
+**Output:**
+- Section 10 auto-populated with developer verdicts
+- `reports/code-review/<TICKET>-findings-detailed.md` (if deep analysis requested)
+- `reports/feedback/<TICKET>-feedback.json` (for accuracy tracking)
+
+---
+
+## Clarification Requirements
+
+**ALWAYS ask clarifying questions before generating documents when:**
+
+1. **Document type is ambiguous:**
+   - "analyze" could mean: requirements analysis, bug report, code review, impact analysis
+   - Ask: "What type of document would you like? (Requirements Analysis / Bug Report / Code Review / Other)"
+
+2. **Input format is unclear:**
+   - If given a ticket description, ask: "Is this a bug report, a new feature request, or a task?"
+
+3. **Output format not specified:**
+   - Ask: "Would you like a formal report document, or a summary in chat?"
+
+## Document Type Detection
+
+Use these keywords to infer document type (but still confirm if ambiguous):
+
+| Keywords in Request | Likely Document Type | Agent to Use |
+|---------------------|---------------------|--------------|
+| "bug", "issue", "error", "not working", "broken" | Bug Report | `@hb-qa-bug-report` |
+| "requirement", "task", "implement", "feature", "user story" | Requirements Analysis | `@hb-requirements-analysis` |
+| "review", "PR", "branch", "code quality" | Code Review | `@hb-qa-code-review` |
+| "test", "acceptance", "scenario", "QA" | Acceptance Test Plan | `@hb-qa-acceptance-tests` |
+| "hotfix", "RCA", "root cause", "why did this break" | Bugfix RCA | `@hb-bugfix-rca` |
+| "release", "Release-", "deployment" | Release Analysis | `@hb-release-analysis` |
+
+**When in doubt, ASK — don't assume.**
+
+---
+
+## Multi-Repository Workspace
+
+Use the branch prefix to identify the correct repository:
+
+| Branch Prefix | Repository | Technology | Base Branch |
+|---------------|------------|------------|-------------|
+| `HM-*` | `HealthBridge-Web` | C# / ASP.NET Core | `main` |
+| `HM-*` | `HealthBridge-Api` | C# / .NET Core | `main` |
+| `HM-*` | `HealthBridge-Claims-Processing` | C# / .NET Core | `main` |
+| `HM-*` | `HealthBridge-Prescriptions-Api` | C# / .NET Core | `main` |
+| `HBP-*` | `HealthBridge-Portal` | C# / .NET Core + React / TypeScript | `main` |
+| `HMM-*` | `HealthBridge-Mobile` | Flutter / Dart | `main` |
+| `-` | `HealthBridge-E2E-Tests` | TypeScript / Playwright | `main` |
+| `-` | `HealthBridge-Selenium-Tests` | Python / Selenium | `main` |
+| `-` | `HealthBridge-Mobile-Tests` | JavaScript / WebdriverIO | `main` |
+| `-` | `DEMO-QA-Agents` | Markdown / Prompts | `main` |
+
+---
+
+## Shared Context Files
+
+Before running any analysis, read these shared context files:
+
+| Context File | Path | Purpose |
+|--------------|------|---------|
+| E2E Coverage Map | `context/e2e-test-coverage-map.md` | Which E2E frameworks cover which functional areas |
+| Ticket Field Mappings | `context/ticket-field-mappings.md` | Auto-detect ticket components from file paths |
+| False Positive Prevention | `context/code-review-false-positive-prevention.md` | Framework safety nets, data flow guarantees, verification protocol (Rules 1-6) |
+| Repository Dependencies | `context/healthbridge-repository-dependencies.md` | Consumer/Provider dependency map across all repos — blast radius, shared databases, API connections |
+
+---
+
+## HealthBridge-Web Development Context for QA Agents
+
+**When analyzing HM-* branches (HealthBridge-Web repository), agents MUST read the relevant development context docs before analysis.**
+
+These documents are maintained by development agents in `HealthBridge-Web/docs/` and provide deep architectural knowledge that improves QA analysis accuracy.
+
+### Agent-to-Document Mapping
+
+| QA Agent | Required Context Docs (in `HealthBridge-Web/docs/`) | Purpose |
+|----------|------------------------------------------------------|---------|
+| **Code Review** | `AGENTS-development-guidelines.md`, `AGENTS-security.md`, `AGENTS-errorhandling.md`, `AGENTS-datalayer.md`, `AGENTS-common-code-patterns.md`, `AGENTS-validation.md`, `AGENTS-performance.md`, `AGENTS-frontend.md`, `AGENTS-translations.md`, `AGENTS-api.md`, `AGENTS-logging.md`, `AGENTS-database.md`, `AGENTS-backgroundservices.md` | Verify code follows golden rules, security patterns, Result pattern, DAL conventions, frontend patterns, translations, API conventions, logging, DB conventions, background service patterns |
+| **Acceptance Tests** | `AGENTS-validation.md`, `AGENTS-frontend.md`, `AGENTS-translations.md`, `AGENTS-api.md`, `AGENTS-testing-e2e.md`, `AGENTS-errorhandling.md`, `AGENTS-security.md`, `AGENTS-database.md` | Understand validation framework, UI patterns, i18n, error handling, permissions, and database architecture for test scenarios |
+| **Bug Report** | `AGENTS-errorhandling.md`, `AGENTS-logging.md`, `AGENTS-security.md`, `AGENTS-database.md`, `AGENTS-datalayer.md`, `AGENTS-common-code-patterns.md`, `AGENTS-validation.md`, `AGENTS-development-guidelines.md`, `AGENTS-frontend.md` | Trace error sources, logging infrastructure, security context, DAL patterns, common code patterns, validation, golden rules, frontend patterns |
+| **Bugfix RCA** | `AGENTS-errorhandling.md`, `AGENTS-logging.md`, `AGENTS-database.md`, `AGENTS-datalayer.md`, `AGENTS-backgroundservices.md`, `AGENTS-security.md`, `AGENTS-development-guidelines.md`, `AGENTS-common-code-patterns.md`, `AGENTS-validation.md`, `AGENTS-frontend.md`, `AGENTS-api.md` | Deep root cause tracing through error handling, data layer, background services, security patterns, golden rules, common code patterns, validation, frontend, and API conventions |
+| **Requirements Analysis** | `AGENTS-development-guidelines.md`, `AGENTS-database.md`, `AGENTS-api.md`, `AGENTS-security.md`, `AGENTS-errorhandling.md`, `AGENTS-validation.md`, `AGENTS-frontend.md` | Assess technical feasibility, data model impact, API patterns, security requirements, error handling completeness, validation feasibility, UI feasibility |
+| **Release Analysis** | Inherits from Code Review Agent (per-PR delegation) | Same context as Code Review for individual PR analysis |
+
+### How to Read
+
+```
+Read: HealthBridge-Web/docs/AGENTS-<name>.md
+```
+
+**When to read:** Before starting analysis for HM-* branches only. Skip for HBP-* (Portal) and HMM-* (Mobile) branches.
+
+### Key Knowledge per Document
+
+| Document | Key QA-Relevant Knowledge |
+|----------|--------------------------|
+| `AGENTS-development-guidelines.md` | Golden rules (Using statements, parameterized queries, TenantID filtering), code organization |
+| `AGENTS-security.md` | UserSession singleton, access levels, permission validation, CSRF prevention |
+| `AGENTS-errorhandling.md` | Result pattern (not exceptions for business logic), HBException hierarchy |
+| `AGENTS-datalayer.md` | Repository (CRUD) vs Query (read-only) patterns, parameterized queries |
+| `AGENTS-common-code-patterns.md` | Result pattern, Entity base class, extension methods |
+| `AGENTS-validation.md` | Validator class, ValidatorField types, form/AJAX validation patterns |
+| `AGENTS-database.md` | Tenant vs Platform databases, SQL naming conventions |
+| `AGENTS-performance.md` | Data structure selection, N+1 prevention, caching patterns |
+| `AGENTS-frontend.md` | HealthBridge JS library, HBForm/HBModal, CSRF token handling |
+| `AGENTS-logging.md` | IEventLogger interfaces, Datadog/Serilog, SystemError table |
+| `AGENTS-api.md` | FHIR integration (REST/JSON API), IResourceDataNode pattern |
+| `AGENTS-translations.md` | Database-driven translations, language fallback, key requirements |
+| `AGENTS-testing-e2e.md` | TestingEnvironment types, in-memory DB, test data management |
+| `AGENTS-backgroundservices.md` | BackgroundServiceInitializer, thread-safe context, parallel processing |
+
+---
+
+## CRITICAL: E2E Framework Selection by Functional Area
+
+**Use FUNCTIONAL AREA to determine which E2E frameworks to check — NOT branch prefix.**
+
+A change in HealthBridge-Web (HM-*) can affect the Mobile app, and vice versa. The branch prefix only tells you WHERE the code changed, not WHAT AREAS are impacted.
+
+**Decision Logic:**
+1. Identify the **functional area** of the feature (e.g., Prescriptions, Patient Records, Billing).
+2. Read the coverage map: `context/e2e-test-coverage-map.md`
+3. For EACH framework:
+   - Coverage map shows check mark -> Search for tests, recommend ADD if missing
+   - Coverage map shows N/A -> Report "N/A — Outside scope" (do NOT recommend adding)
+
+**Quick Reference:**
+
+| Functional Area | Selenium | Playwright | Mobile |
+|-----------------|----------|------------|--------|
+| Prescriptions / Medications | Yes | No | Yes |
+| Patient Records / Charts | Yes | No | No |
+| Insurance Claims / Billing | Yes | Yes | Yes (approval) |
+| Appointments / Scheduling | No | Yes | Yes |
+| Staff Scheduling / Shifts | No | Yes | No |
+| Lab Results / Diagnostics | No | Yes | Yes (viewing) |
+
+**Always read the full coverage map for accurate functional area mapping.**
+
+---
+
+## CRITICAL: Branch Commit Filtering
+
+**ALL agents analyzing branches MUST filter commits by ticket ID before analysis.**
+
+When a branch contains merged commits from other tickets (common after merging main/development):
+
+```bash
+# Cross-platform commands (work on Windows, Mac, Linux):
+
+# Step 1: Count ALL commits on branch
+git rev-list --count origin/main..origin/<branch-name>
+
+# Step 2: Get ticket-specific commits using git's built-in --grep flag
+git log origin/main..origin/<branch-name> --oneline --grep="<TICKET_ID>"
+
+# Step 3: Count ticket-specific commits
+git rev-list --count origin/main..origin/<branch-name> --grep="<TICKET_ID>"
+```
+
+**Decision Logic:**
+- If ALL commits contain the ticket ID -> Use standard `git diff`
+- If branch contains OTHER ticket IDs -> **ONLY analyze ticket-specific commits**
+
+**Validation:** Always report: "Branch contains X total commits, analyzing Y commits specific to <TICKET_ID>"
+
+---
+
+## CRITICAL: Never Disrupt Developer's Working Directory
+
+**Agents must NEVER use `git checkout`, `git switch`, or `git pull` for analysis purposes.**
+
+This applies to ALL repositories in the workspace (application repos, microservice APIs, test automation repos).
+
+**Why:** Users (developers, QA automation) may be working on feature branches with uncommitted changes. Checkout would disrupt their work.
+
+### Safe Git Operations for Analysis
+
+```bash
+# SAFE: Fetch updates remote tracking branches without changing working directory
+git fetch origin
+
+# SAFE: Analyze using remote refs (origin/*)
+git diff origin/main..origin/<feature-branch>
+git log origin/main..origin/<feature-branch>
+git show origin/main:<file-path>
+git grep "<pattern>" origin/main -- "*.cs"
+```
+
+```bash
+# UNSAFE: Never use these for analysis
+git checkout <branch>    # Disrupts working directory
+git switch <branch>      # Disrupts working directory
+git pull                 # May fail or cause conflicts
+```
+
+---
+
+## CRITICAL: E2E Repository — Fetch Before Coverage Analysis
+
+**ALL agents analyzing E2E test coverage MUST fetch latest before searching.**
+
+```bash
+# Fetch latest from E2E repositories (safe, non-destructive)
+cd ../HealthBridge-Selenium-Tests && git fetch origin
+cd ../HealthBridge-E2E-Tests && git fetch origin
+cd ../HealthBridge-Mobile-Tests && git fetch origin
+```
+
+**Then search on remote tracking branch:**
+```bash
+# Search in latest main without checking it out
+cd ../HealthBridge-Selenium-Tests && git grep -n "<keyword>" origin/main -- "*.cs"
+```
+
+**Report to user:** "Fetched latest from E2E test repositories"
+
+**Why this matters:**
+- E2E tests are frequently updated; stale remote refs lead to incorrect coverage analysis
+- New tests may have been added that cover the feature being analyzed
+- Prevents false "No coverage" reports when tests actually exist
+- Developer's current branch and uncommitted changes remain untouched
+
+**When to run:**
+- Before analyzing E2E test coverage in code review
+- Before generating E2E test recommendations in acceptance tests
+- Before checking coverage gaps in bugfix RCA
+- Before E2E coverage analysis in release reports
+
+---
+
+## CRITICAL: E2E Test Search Strategy (Lesson from HM-14115)
+
+**DO NOT search only by folder structure. ALWAYS search by functionality keyword first.**
+
+### The Problem (HM-14115 Incident)
+
+Agent incorrectly reported "No API tests" for prescription invalidation because:
+- Searched only `PatientUI/Tests/` (UI tests)
+- Missed `IntegrationTests/Tests/` (API/Integration tests)
+- Pattern-matched "prescription" to UI tests only
+
+### The Solution: Keyword-First Search
+
+After fetching latest, search on remote tracking branch:
+
+```bash
+# Search across ALL test directories in latest main
+cd ../HealthBridge-Selenium-Tests && git grep -n "<keyword>" origin/main -- "*.cs"
+```
+
+Or use Claude Code's `Grep` tool on local files (searches current working tree):
+
+```
+Grep pattern: "<keyword>" path: "HealthBridge-Selenium-Tests" glob: "*.cs"
+```
+
+**Do NOT limit search to specific subdirectories initially.**
+
+### Selenium Test Directories (MUST search ALL)
+
+| Directory | Test Type | Coverage Areas |
+|-----------|-----------|----------------|
+| **IntegrationTests/** | **API/Integration** | **Prescription API, Patient Records API, external integrations** |
+| PatientUI/ | UI E2E | Patient-facing UI tests |
+| BillingTests/ | UI E2E | Insurance and billing tests |
+| SchedulingTests/ | UI E2E | Appointment scheduling tests |
+| ClinicalTests/ | UI E2E | Clinical workflow tests |
+
+### Updated Coverage Table Format
+
+When reporting E2E coverage, split Selenium into UI and Integration:
+
+| Framework | Scope | Related Tests | Status |
+|-----------|-------|---------------|--------|
+| Selenium UI | Yes/No | [UI tests found] | Coverage status |
+| Selenium Integration | Yes/No | [API tests found] | Coverage status |
+| Playwright | Yes/No | [tests found] | Coverage status |
+| Mobile | Yes/No | [tests found] | Coverage status |
+
+---
+
+## Historical Bugfix Patterns
+
+**ALL agents must check for these patterns based on repository type:**
+
+### Web / API Patterns (HM-* branches in HealthBridge-Web)
+
+Based on RCA of 50+ production bugfixes:
+
+| Pattern | % | Detection Focus |
+|---------|---|-----------------|
+| **Edge Cases** | 28% | Empty patient lists, boundary dates for prescription validity, zero-dose quantities |
+| **Authorization Gaps** | 22% | Doctor accessing patient outside department, role-based permission mismatches |
+| **NULL Handling** | 18% | Missing allergy records, null insurance provider, absent emergency contacts |
+| **Logic/Condition Errors** | 16% | Drug interaction checks skipped, overlapping appointment slots, discharge without all sign-offs |
+| **Data Validation** | 10% | Invalid dosage formats, expired license numbers, malformed diagnosis codes |
+| **Missing Implementation** | 6% | TODOs in discharge workflows, stubs in referral processing, incomplete audit logging |
+
+### Portal Patterns (HBP-* branches) — C# / React / TypeScript
+
+Based on RCA of 30+ bugfixes:
+
+| Pattern | % | Detection Focus |
+|---------|---|-----------------|
+| **Permission/Authorization** | 25% | API fetches without permission guards, missing `enabled` flags in React Query |
+| **NULL/Undefined Handling** | 20% | Missing optional chaining, nullable DB fields mapped to non-nullable |
+| **Cross-Year/Date Calculations** | 18% | `.Year` arithmetic without month handling, period copying across fiscal years |
+| **UI Event Handling & Refs** | 15% | Ref scope issues, blur/mousedown containment checks, `props.children` unreliability |
+| **Logic/Condition Errors** | 12% | `return` vs `continue` in loops, missing condition cases |
+| **Error Propagation** | 10% | Errors breaking pages instead of graceful degradation |
+
+**Key differences from HealthBridge-Web:** Portal has significantly more permission bugs (25% vs 5%) and UI lifecycle issues (15% vs 2%) due to React frontend.
+
+### Mobile/Flutter Patterns (HMM-* branches only)
+
+Based on RCA of 20+ mobile bugfixes:
+
+| Pattern | % | Detection Focus |
+|---------|---|-----------------|
+| **Calculation/Logic Errors** | 30% | Date math, week boundaries, dosage calculations, appointment duration |
+| **State Management Issues** | 25% | Riverpod lifecycle, async races, disposed widget access |
+| **Navigation/UI Lifecycle** | 20% | Modal handling, missing pop() calls, back button behavior |
+| **Edge Cases** | 15% | Empty patient lists, optional data fields, offline mode boundaries |
+| **NULL/Optional Handling** | 5% | Async nulls, state access timing |
+| **Missing Implementation** | 5% | Incomplete features, partial offline support |
+
+### Microservice API Patterns (HM-* branches in microservice repos) — C# / .NET Core
+
+Based on RCA of bugfixes across microservice repositories (Claims-Processing, Prescriptions-Api):
+
+| Pattern | % | Detection Focus |
+|---------|---|-----------------|
+| **NULL Handling** | 22% | `FirstOrDefault()` without null check, nullable DB fields, empty collection `.First()` |
+| **Configuration/DI Errors** | 18% | Missing DI registrations, wrong service lifetimes (scoped vs transient), auth setup |
+| **Logic/Condition Errors** | 16% | Swapped constructor parameters, incorrect condition ordering, wrong method overloads |
+| **Database/EF Core Issues** | 14% | Wrong column types (`int` vs `tinyint`), missing `.Include()`, double joins, FK misconfig |
+| **Edge Cases** | 12% | Boundary values, empty collections, optional parameter defaults, pagination missing |
+| **Type Casting Errors** | 8% | Value Object vs primitive confusion in LINQ, wrong DB column type declarations |
+| **Permission/Authorization** | 5% | Missing permission guards, incorrect access level checks |
+| **Concurrency/Race Conditions** | 5% | `DbUpdateConcurrencyException`, operation ordering, message queue sequencing |
+
+**Key differences from HealthBridge-Web:** Microservices have significantly more Configuration/DI bugs (18% vs 3%) and Database/EF Core issues (14% vs 5%) due to distributed architecture and EF Core configuration complexity. Claims-Processing uniquely has concurrency as its #1 pattern (23%) due to multiple services accessing shared state.
+
+### Claims-Processing Patterns (HM-* branches) — C# / .NET Core
+
+Based on RCA of 43 bugfixes:
+
+| Pattern | % | Detection Focus |
+|---------|---|-----------------|
+| **Concurrency/Race Conditions** | 23% | `DbUpdateConcurrencyException`, EF Core change tracking races, operation ordering |
+| **CI/CD & Deployment** | 19% | Workflow bugs, Docker path errors, deploy script logic, tag formatting |
+| **Data Validation/Uniqueness** | 14% | Missing composite keys, incorrect uniqueness checks, ClaimId scoping |
+| **Logic/Condition Errors** | 12% | Wrong terminal status values, incorrect polling conditions |
+| **Configuration/DI Errors** | 12% | Missing options, wrong service lifetime, name shadowing |
+| **Edge Cases** | 9% | Pagination missing, negative backoff, infinite loops, empty entity handling |
+| **NULL Handling** | 7% | Nullable fields, `FirstOrDefault` returning null |
+| **Error Handling/Retry** | 5% | Missing retry on transient failures |
+
+---
+
+## Prompt Templates
+
+All agents use prompt templates from `prompts/`:
+
+| Category | Path | Contents |
+|----------|------|----------|
+| Code Review | `prompts/code-review-qa/` | `code-review-qa.md`, `code-review-template.md`, `findings-detailed-template.md` |
+| Feedback | `prompts/feedback/` | `feedback-template.md` |
+| Bug Report | `prompts/bug-report/` | `bug-report-prompt.md`, `bug-report-template.md`, `severity-criteria.md` |
+| Bugfix RCA | `prompts/bugfix-rca/` | `bugfix-rca-template.md` |
+| Release Assessment | `prompts/release-assessment/` | `release-assessment-prompt.md`, `release-assessment-template.md`, `release-notes-prompt.md` |
+| Requirements Analysis | `prompts/requirements-analysis/` | `requirements-analysis-template.md` — **7/10 scoring system** |
+
+**Always read the relevant template before generating any document.**
+
+### Requirements Analysis — Scoring Gate
+
+The Requirements Analysis agent uses a **7/10 scoring threshold**:
+
+| Score | Verdict | Next Steps |
+|-------|---------|------------|
+| **>= 7/10** | **READY** | **AUTO-GENERATE:** QA Test Plan + DEV Estimation |
+| **< 7/10** | **NOT READY** | No QA/DEV work until Product Owner resolves gaps |
+
+**AUTOMATIC WORKFLOW (Score >= 7/10):**
+```
+Requirements Analysis (Score >= 7)
+        |
+        v  AUTO-GENERATE (all to reports/requirements-analysis/)
+QA Test Plan  ->  <TICKET-ID>-qa-test-plan.md
+        |
+        v  AUTO-GENERATE
+DEV Estimation  ->  <TICKET-ID>-dev-estimation.md
+```
+
+**Template location:** `prompts/requirements-analysis/requirements-analysis-template.md`
+
+---
+
+## Output Constraints
+
+| Document Type | Word Limit | Output Location |
+|---------------|------------|-----------------|
+| Code Review Report | 1300 words | `reports/code-review/<TICKET-ID>-code-review.md` |
+| Code Review Deep Analysis | No limit | `reports/code-review/<TICKET-ID>-findings-detailed.md` |
+| Code Review Feedback | N/A (JSON) | `reports/feedback/<TICKET-ID>-feedback.json` |
+| Acceptance Tests (standalone) | No limit | `reports/acceptance-tests/<TICKET-ID>-acceptance-tests.md` |
+| Requirements Analysis | 1000 words | `reports/requirements-analysis/<TICKET-ID>-requirements-analysis.md` |
+| QA Test Plan (from workflow) | 1000 words | `reports/requirements-analysis/<TICKET-ID>-qa-test-plan.md` |
+| Dev Estimation (from workflow) | 800 words | `reports/requirements-analysis/<TICKET-ID>-dev-estimation.md` |
+| Bug Report | 600 words | `reports/bug-reports/<TICKET-ID>-bug-report.md` |
+| Bugfix RCA | 800 words | `reports/bugfix-rca/<TICKET-ID>-rca.md` |
+| Release Risk Assessment | 1500 words | `reports/week-release/<RELEASE-NAME>-risk.md` |
+
+---
+
+## Important Notes
+
+- Always run fresh analysis — do not rely on cached data
+- Use relative paths (not hardcoded absolute paths)
+- Follow exact section structure from templates — do not skip or rename sections
+- Use "N/A — [reason]" if a section is not applicable
+- Include file:line references where possible
+- Never write documents with placeholder values

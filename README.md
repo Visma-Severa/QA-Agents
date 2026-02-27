@@ -1,0 +1,1165 @@
+# HealthBridge QA AI Agents
+
+**Created by:** [Kira Komshilova](https://www.linkedin.com/in/kira-komshilova/) (kira.komshilova@visma.com)
+
+> **This is an anonymized DEMO project.** The original production system is used internally at [Visma](https://www.visma.com/) for QA automation across a large multi-repository enterprise platform. All domain-specific references have been replaced with a fictional "HealthBridge" health management theme. The project structure, agents, prompts, templates, and example reports can be used as a reference for building your own AI-powered QA agents.
+
+A centralized repository for AI prompts and agents used across HealthBridge projects. These tools enhance developer productivity, code quality, and release management through AI-assisted analysis in a multi-repository health management platform.
+
+---
+
+## Multi-Repository Workspace
+
+This repository is designed to work within a **multi-repository VS Code/Cursor workspace** that contains all HealthBridge repositories. The AI agents require access to multiple repositories to perform comprehensive analysis across the codebase.
+
+### Why Multi-Repository Workspace?
+
+- **Cross-repository analysis** -- Agents can analyze code changes and find related E2E tests across different repositories
+- **Unified context** -- AI assistants have visibility into the entire codebase for better suggestions
+- **Consistent tooling** -- Shared prompts and agents work across all projects
+- **E2E coverage detection** -- Release analysis can check Selenium, Playwright, and Mobile test coverage
+- **Automatic repository sync** -- The VS Code extension safely syncs all repos before each agent run (never forces, never overwrites your work)
+
+### Repositories
+
+The workspace contains **10 repositories** across four categories:
+
+#### Core Application Repositories
+
+| Repository | Technology | Default Branch | Branch Prefix | Description |
+|------------|-----------|---------------|---------------|-------------|
+| `HealthBridge-Web` | C# / ASP.NET Core | `main` | `HM-*` | Core patient management, scheduling, and clinical workflows |
+| `HealthBridge-Portal` | C# / .NET Core, React | `main` | `HBP-*` | Provider portal backend and frontend |
+| `HealthBridge-Api` | C# / .NET Core | `main` | `HM-*` | REST API for external partner integrations |
+| `HealthBridge-Mobile` | Flutter / Dart | `main` | `HMM-*` | iOS/Android mobile application |
+
+#### Microservice API Repositories
+
+| Repository | Technology | Default Branch | Branch Prefix | Description |
+|------------|-----------|---------------|---------------|-------------|
+| `HealthBridge-Claims-Processing` | C# / .NET Core | `main` | `HM-*` | Insurance claims processing and payment reconciliation |
+| `HealthBridge-Prescriptions-Api` | C# / .NET Core | `main` | `HM-*` | Prescription management |
+
+#### Test Automation Repositories
+
+| Repository | Technology | Default Branch | Description |
+|------------|-----------|---------------|-------------|
+| `HealthBridge-Selenium-Tests` | C# / Selenium | `master` | UI tests (Patient Records, Billing, Scheduling) + Integration/API tests |
+| `HealthBridge-E2E-Tests` | TypeScript / Playwright | `master` | Modern E2E tests: prescriptions, referrals, staff scheduling |
+| `HealthBridge-Mobile-Tests` | WebdriverIO / JavaScript | `main` | Mobile app automation tests |
+
+#### QA Agents Repository
+
+| Repository | Technology | Default Branch | Description |
+|------------|-----------|---------------|-------------|
+| `DEMO-QA-Agents` | Markdown / TypeScript | `main` | This repository -- AI prompts, agents, and VS Code extension |
+
+---
+
+## What's New (v1.0.0)
+
+- **7 specialized QA agents** covering the full software quality lifecycle
+- **Predictive bug detection** based on historical hotfix pattern analysis
+- **Interactive developer feedback** with deep analysis workflow
+- **VS Code chat extension** with automatic repository sync
+- **Cross-platform support** for macOS, Windows, and Linux
+- **Multi-IDE support** for Claude Code, Cursor, and VS Code with GitHub Copilot
+- **10-repository workspace** with auto-detection from branch prefixes
+
+See the full [CHANGELOG.md](CHANGELOG.md) for details.
+
+---
+
+## Prerequisites
+
+Before starting, ensure the following tools are installed on your machine:
+
+| Tool | Required For | Download |
+|------|-------------|----------|
+| **Git** | Cloning repositories, version control | [git-scm.com/downloads](https://git-scm.com/downloads) |
+| **Node.js** (v18+) | Building the VS Code extension | [nodejs.org](https://nodejs.org/) |
+| **VS Code** or **Cursor** | IDE with GitHub Copilot Chat support | [code.visualstudio.com](https://code.visualstudio.com/) |
+| **GitHub Copilot** | AI chat participants (`@hb-*` agents) | [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot) |
+
+### IDE Options
+
+| IDE | How Agents Work | Configuration File |
+|-----|----------------|--------------------|
+| **VS Code + GitHub Copilot** | `@hb-*` chat participants via extension | `.github/copilot-instructions.md` |
+| **Cursor** | Agent mode with `.cursorrules` | `.cursorrules` |
+| **Claude Code** | CLI agent with CLAUDE.md | `.claude/CLAUDE.md` |
+
+### Verify Installation
+
+**macOS/Linux:**
+```bash
+git --version    # Should print: git version 2.x.x
+node --version   # Should print: v18.x.x or higher
+npm --version    # Should print: 9.x.x or higher
+```
+
+**Windows (PowerShell):**
+```powershell
+git --version    # Should print: git version 2.x.x
+node --version   # Should print: v18.x.x or higher
+npm --version    # Should print: 9.x.x or higher
+```
+
+> **Windows: "git is not recognized" error?** This means Git is not installed or not added to your system PATH. Follow the steps below to fix it.
+
+#### Fixing "git is not recognized" on Windows
+
+**Option A: Restart your terminal (try this first)**
+
+If you just installed Git, close and reopen PowerShell (or VS Code terminal). New PATH entries only take effect in new terminal sessions.
+
+**Option B: Re-run the Git installer with PATH option**
+
+1. Run the Git installer again from [git-scm.com/downloads](https://git-scm.com/downloads)
+2. On the **"Adjusting your PATH environment"** screen, select: **"Git from the command line and also from 3rd-party software"** (the recommended/middle option)
+3. Complete the installation
+4. Open a **new** PowerShell window and verify: `git --version`
+
+**Option C: Manually add Git to PATH**
+
+If Git is already installed but not in PATH:
+
+1. Find your Git installation path. Common locations:
+   - `C:\Program Files\Git\cmd`
+   - `C:\Users\<username>\AppData\Local\Programs\Git\cmd`
+2. Open **Start** > search **"Environment Variables"** > click **"Edit the system environment variables"**
+3. Click **"Environment Variables..."** button
+4. Under **"User variables"** (or **"System variables"**), select **Path** > click **Edit**
+5. Click **New** and add the path to Git's `cmd` folder (e.g., `C:\Program Files\Git\cmd`)
+6. Click **OK** on all dialogs
+7. Open a **new** PowerShell window and verify: `git --version`
+
+**Option D: Use Git Bash instead of PowerShell**
+
+Git for Windows includes **Git Bash**, a Unix-like terminal where `git` always works. All commands in this guide work in Git Bash without modification:
+- Open from Start menu: search **"Git Bash"**
+- Or right-click in File Explorer > **"Open Git Bash here"**
+
+---
+
+## Architecture Overview
+
+The system is built around **7 specialized agents**, each governed by shared global instructions and backed by:
+
+```
+User Input (ticket ID, error, release name)
+        |
+        v
+  Global Instructions (.claude/CLAUDE.md, .cursorrules, copilot-instructions.md)
+        |
+        v
+  Agent Definition (agents/vscode-chat-participants/<agent>.md)
+        |
+        +---> Shared Context Files (context/*.md)
+        |         - E2E coverage map
+        |         - Domain knowledge (prescriptions, patient records)
+        |         - False positive prevention rules
+        |         - Repository dependency map
+        |
+        +---> Prompt Templates (prompts/<category>/*.md)
+        |         - Report structure and formatting rules
+        |         - Scoring criteria and thresholds
+        |
+        +---> IDE Tools (git, grep, file read)
+        |         - Repository analysis via git fetch + remote tracking
+        |         - Code search across all 10 repos
+        |         - E2E test coverage detection
+        |
+        v
+  Generated Report (reports/<category>/<TICKET>-<type>.md)
+```
+
+### Key Design Principles
+
+- **Non-destructive analysis** -- Agents never use `git checkout`; they analyze via `git fetch` + remote tracking branches to protect developer working directories
+- **Auto-detection** -- Branch prefixes (`HM-*`, `HBP-*`, `HMM-*`) automatically route to the correct repository
+- **Predictive bug detection** -- Historical hotfix patterns (Edge Cases 28%, Authorization 22%, NULL 18%) are used to flag risks before merge
+- **Cross-platform** -- All commands and tools work on macOS, Windows, and Linux
+- **Template-driven output** -- Every report follows a standardized template for consistency and auditability
+
+### JIRA Ticket ID and Git Branch Naming Convention
+
+**JIRA is used for task management and defect tracking.** Every development task, bug fix, and feature request is tracked as a JIRA ticket with a unique ID.
+
+**The JIRA ticket ID MUST be used when creating Git branches.** This is the key mechanism that allows QA agents to automatically find the corresponding branch in any repository.
+
+| JIRA Ticket ID | Git Branch Name | Repository |
+|----------------|----------------|------------|
+| `HM-14200` | `HM-14200-prescription-renewal` | HealthBridge-Web, HealthBridge-Api, Claims-Processing, Prescriptions-Api |
+| `HBP-5001` | `HBP-5001-portal-dashboard-fix` | HealthBridge-Portal |
+| `HMM-3200` | `HMM-3200-mobile-appointment-view` | HealthBridge-Mobile |
+
+**Rules:**
+- Branch name **must start with or contain** the JIRA ticket ID (e.g., `HM-14200`, `HM-14200-feature-name`, `feature/HM-14200`)
+- Agents search for branches using `git branch -r --list "*<TICKET_ID>*"` -- the ticket ID substring is sufficient
+- One JIRA ticket = one branch per repository (a ticket may span multiple repos)
+- Commit messages should also include the ticket ID for commit filtering
+
+---
+
+## Available Agents
+
+| Agent | Chat Participant | Purpose | Example |
+|-------|-----------------|---------|---------|
+| **Code Review** | `@hb-qa-code-review` | Analyze PR/branch for code quality, test gaps, risks | `@hb-qa-code-review HM-14200` |
+| **Acceptance Tests** | `@hb-qa-acceptance-tests` | Generate Given/When/Then test scenarios | `@hb-qa-acceptance-tests HM-14200` |
+| **Bug Report** | `@hb-qa-bug-report` | Analyze errors and generate ticket-ready bug reports | `@hb-qa-bug-report [error details]` |
+| **Bugfix RCA** | `@hb-bugfix-rca` | Root cause analysis for hotfixes | `@hb-bugfix-rca HM-14200 Release-4/2026` |
+| **Requirements Analysis** | `@hb-requirements-analysis` | Pre-development requirements validation (7/10 gate) | `@hb-requirements-analysis HM-14200` |
+| **Release Analysis** | `@hb-release-analysis` | Analyze releases for risk, coverage, deployment readiness | `@hb-release-analysis release/Release-04/2026` |
+| **Feedback** | `@hb-qa-feedback` | Interactive developer feedback on code review findings | Invoked after `@hb-qa-code-review` with `interactive` |
+
+---
+
+## Quick Start (Automated Setup)
+
+If you are setting up for the first time, use the automated setup script. It clones all 10 repos, copies config files (workspace file, `.github/copilot-instructions.md`, `.cursorrules`, `.claude/CLAUDE.md`), creates report directories, and builds + installs the VS Code extension -- all in one step.
+
+### First-Time Setup
+
+**Windows -- Easy (double-click):**
+
+1. Open PowerShell and run these lines to clone the repository:
+   ```powershell
+   mkdir HealthBridge; cd HealthBridge
+   git clone https://github.com/HealthBridge/DEMO-QA-Agents.git
+   ```
+2. Open the folder `HealthBridge\DEMO-QA-Agents\setup\` in File Explorer
+3. **Double-click `setup.bat`** -- it handles everything automatically
+4. When it finishes, double-click `HealthBridge.code-workspace` in the `HealthBridge\` folder to open VS Code
+
+**Windows -- PowerShell (manual):**
+```powershell
+# Create workspace directory and clone QA Agents repo first
+mkdir HealthBridge; cd HealthBridge
+git clone https://github.com/HealthBridge/DEMO-QA-Agents.git
+cd DEMO-QA-Agents
+
+# Run setup (use -ExecutionPolicy Bypass if scripts are blocked)
+powershell -ExecutionPolicy Bypass -File .\setup\setup.ps1
+```
+
+> **Windows: "running scripts is disabled" error?** PowerShell blocks script execution by default. Use the `powershell -ExecutionPolicy Bypass -File` prefix shown above, which temporarily allows the script to run without changing your system settings. Alternatively, you can enable scripts permanently for your user by running `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` in an **Administrator** PowerShell.
+
+**macOS/Linux:**
+```bash
+# Create workspace directory and clone QA Agents repo first
+mkdir HealthBridge && cd HealthBridge
+git clone https://github.com/HealthBridge/DEMO-QA-Agents.git
+cd DEMO-QA-Agents
+chmod +x setup/setup.sh
+./setup/setup.sh
+```
+
+The script handles everything automatically:
+- Clones all 10 repositories (skips any that already exist)
+- Copies `HealthBridge.code-workspace` to workspace root
+- Copies AI config files (`.github/copilot-instructions.md`, `.cursorrules`, `.claude/CLAUDE.md`) to workspace root
+- Creates `reports/` directory with all subdirectories
+- Builds and installs the VS Code chat extension
+- Copies `update.bat` to workspace root (for easy future updates on Windows)
+
+**After setup completes, open the workspace:**
+
+```bash
+# Navigate to the workspace root (parent of all repos)
+cd ..
+
+# Open in VS Code
+code HealthBridge.code-workspace
+
+# Or open in Cursor
+cursor HealthBridge.code-workspace
+```
+
+> **First time opening?** VS Code may show "File not found" errors for previously cached tabs -- just close them (click X). The workspace itself is working correctly.
+
+> **Reload after extension install.** Press **F1** > type **"Developer: Reload Window"** > Enter. Then type `@hb` in Copilot Chat to verify the agents are available.
+
+---
+
+### Updating
+
+When the QA Agents repo has new changes, update with one of these methods:
+
+**Windows -- Easy (double-click):**
+
+After setup, you will have an `update.bat` file in your workspace root folder (next to `HealthBridge.code-workspace`). **Double-click it** to update everything. No terminal commands needed.
+
+**From VS Code (any platform):**
+
+Press **F1** > type **"Tasks: Run Task"** > select **"QA Agents: Update"**. This works regardless of which folder you have open in the workspace.
+
+**From terminal:**
+
+| Platform | Command |
+|----------|---------|
+| macOS/Linux | `./DEMO-QA-Agents/setup/update.sh` |
+| Windows | `powershell -ExecutionPolicy Bypass -File DEMO-QA-Agents\setup\update.ps1` |
+
+This pulls latest changes, syncs AI config files (CLAUDE.md, .cursorrules, copilot-instructions.md) to the workspace root, and rebuilds the VS Code extension. Use `--no-extension` (or `-NoExtension` on Windows) to skip the extension rebuild.
+
+> All scripts use dynamic path resolution -- no hardcoded paths, safe to re-run, and work from any directory.
+
+For manual step-by-step instructions, see the detailed setup guide below.
+
+---
+
+## Setup Guide (Manual)
+
+### Step 1: Create the Workspace Directory
+
+Create a parent directory that will hold all HealthBridge repositories:
+
+**macOS/Linux (bash/zsh):**
+```bash
+mkdir HealthBridge && cd HealthBridge
+```
+
+**Windows (PowerShell):**
+```powershell
+mkdir HealthBridge; cd HealthBridge
+```
+
+**Windows (Git Bash -- Recommended):**
+```bash
+mkdir HealthBridge && cd HealthBridge
+```
+
+> **Windows Users:** Use Git Bash (comes with Git for Windows) instead of PowerShell for seamless compatibility with all commands in this guide.
+
+### Step 2: Clone All Repositories
+
+Clone all 10 repositories into the workspace directory:
+
+```bash
+# Core application repositories
+git clone https://github.com/HealthBridge/HealthBridge-Web.git
+git clone https://github.com/HealthBridge/HealthBridge-Portal.git
+git clone https://github.com/HealthBridge/HealthBridge-Api.git
+git clone https://github.com/HealthBridge/HealthBridge-Mobile.git
+
+# Microservice API repositories
+git clone https://github.com/HealthBridge/HealthBridge-Claims-Processing.git
+git clone https://github.com/HealthBridge/HealthBridge-Prescriptions-Api.git
+
+# Test automation repositories
+git clone https://github.com/HealthBridge/HealthBridge-Selenium-Tests.git
+git clone https://github.com/HealthBridge/HealthBridge-E2E-Tests.git
+git clone https://github.com/HealthBridge/HealthBridge-Mobile-Tests.git
+
+# QA Agents repository
+git clone https://github.com/HealthBridge/DEMO-QA-Agents.git
+```
+
+Your directory should now look like:
+
+```
+HealthBridge/
+├── HealthBridge-Web/
+├── HealthBridge-Portal/
+├── HealthBridge-Api/
+├── HealthBridge-Mobile/
+├── HealthBridge-Claims-Processing/
+├── HealthBridge-Prescriptions-Api/
+├── HealthBridge-Selenium-Tests/
+├── HealthBridge-E2E-Tests/
+├── HealthBridge-Mobile-Tests/
+└── DEMO-QA-Agents/
+```
+
+### Step 3: Open the Workspace
+
+A VS Code workspace file allows you to open all repositories as a single, unified workspace. The file is included in the QA Agents repository -- copy it to the parent directory and open it:
+
+**macOS/Linux:**
+```bash
+# Copy workspace file to parent directory
+cp DEMO-QA-Agents/HealthBridge.code-workspace .
+
+# Open in VS Code
+code HealthBridge.code-workspace
+
+# Or open in Cursor
+cursor HealthBridge.code-workspace
+```
+
+**Windows (PowerShell):**
+```powershell
+# Copy workspace file to parent directory
+Copy-Item -Path "DEMO-QA-Agents\HealthBridge.code-workspace" -Destination "."
+
+# Open in VS Code
+code HealthBridge.code-workspace
+
+# Or open in Cursor
+cursor HealthBridge.code-workspace
+```
+
+**Windows (Git Bash):**
+```bash
+# Same as macOS/Linux
+cp DEMO-QA-Agents/HealthBridge.code-workspace .
+code HealthBridge.code-workspace
+```
+
+The workspace file (`HealthBridge.code-workspace`) configures:
+- All repositories as workspace folders
+- File exclusions (`.git`, `.DS_Store`)
+- GitHub Copilot instruction file reference
+- Recommended extensions (GitHub Copilot, GitHub Copilot Chat)
+
+> **"File not found" errors on first open?** VS Code tries to restore previously open tabs from its cache. Simply close the error tabs (click X) -- the workspace itself is working correctly. This is normal when opening a shared workspace file for the first time.
+
+> **Creating from scratch?** If the workspace file is not available, open VS Code, use **File > Add Folder to Workspace** for each repository, then **File > Save Workspace As...** and save as `HealthBridge.code-workspace` in the parent directory.
+
+### Step 4: Configure AI Instructions
+
+The AI agents rely on instruction files that tell your IDE how to behave -- branch prefix mappings, bugfix pattern detection rules, E2E test search strategies, and output format rules. Your IDE reads these automatically from specific locations at the workspace root.
+
+```
+HealthBridge/                              <-- Workspace root
+├── .github/
+│   └── copilot-instructions.md            <-- VS Code/Copilot reads from here
+├── .cursorrules                           <-- Cursor reads from here
+├── .claude/
+│   └── CLAUDE.md                          <-- Claude Code reads from here
+├── DEMO-QA-Agents/                        <-- Source of truth
+│   ├── .github/
+│   │   └── copilot-instructions.md        <-- COPY FROM HERE
+│   ├── .cursorrules                       <-- COPY FROM HERE
+│   └── .claude/
+│       └── CLAUDE.md                      <-- COPY FROM HERE
+├── HealthBridge-Web/
+├── HealthBridge-Portal/
+└── ...
+```
+
+#### For GitHub Copilot (VS Code)
+
+Copilot reads instructions from `.github/copilot-instructions.md` at the workspace root:
+
+**macOS/Linux:**
+```bash
+# From workspace root (HealthBridge/)
+mkdir -p .github
+cp DEMO-QA-Agents/.github/copilot-instructions.md .github/
+```
+
+**Windows (PowerShell):**
+```powershell
+# From workspace root (HealthBridge/)
+New-Item -ItemType Directory -Force -Path ".github"
+Copy-Item -Path "DEMO-QA-Agents\.github\copilot-instructions.md" -Destination ".github\"
+```
+
+**What this provides:**
+- Branch prefix to repository mapping (`HM-*` to HealthBridge-Web, `HBP-*` to HealthBridge-Portal, `HMM-*` to Mobile)
+- Historical bugfix pattern detection rules (NULL handling, edge cases, authorization gaps)
+- E2E test search strategy (keyword-first, cross-framework)
+- Agent output format and word limit rules
+- Cross-platform command guidelines (Windows/macOS/Linux)
+
+#### For Cursor
+
+Cursor reads instructions from `.cursorrules` at the workspace root:
+
+**macOS/Linux:**
+```bash
+# From workspace root (HealthBridge/)
+cp DEMO-QA-Agents/.cursorrules .
+```
+
+**Windows (PowerShell):**
+```powershell
+# From workspace root (HealthBridge/)
+Copy-Item -Path "DEMO-QA-Agents\.cursorrules" -Destination "."
+```
+
+**What this provides:**
+- Same agent behavior and analysis rules as Copilot instructions
+- Cursor-specific formatting (handoffs, sub-agent spawning)
+- Prompt template references for consistent report generation
+
+#### For Claude Code
+
+Claude Code reads instructions from `.claude/CLAUDE.md` at the workspace root:
+
+**macOS/Linux:**
+```bash
+# From workspace root (HealthBridge/)
+mkdir -p .claude
+cp DEMO-QA-Agents/.claude/CLAUDE.md .claude/
+```
+
+**Windows (PowerShell):**
+```powershell
+# From workspace root (HealthBridge/)
+New-Item -ItemType Directory -Force -Path ".claude"
+Copy-Item -Path "DEMO-QA-Agents\.claude\CLAUDE.md" -Destination ".claude\"
+```
+
+**What this provides:**
+- Same agent behavior, analysis rules, and output formats as Copilot/Cursor instructions
+- Branch prefix detection, bugfix pattern rules, E2E search strategies
+- Agent execution protocol (auto-detect repos, no confirmations, complete delivery)
+
+> **Note:** The automated setup and update scripts handle this automatically. Manual copy is only needed for first-time manual setup.
+
+#### Both IDEs at Once (Recommended)
+
+**macOS/Linux:**
+```bash
+# From workspace root (HealthBridge/)
+mkdir -p .github .claude
+cp DEMO-QA-Agents/.github/copilot-instructions.md .github/
+cp DEMO-QA-Agents/.cursorrules .
+cp DEMO-QA-Agents/.claude/CLAUDE.md .claude/
+```
+
+**Windows (PowerShell):**
+```powershell
+# From workspace root (HealthBridge/)
+New-Item -ItemType Directory -Force -Path ".github"
+New-Item -ItemType Directory -Force -Path ".claude"
+Copy-Item -Path "DEMO-QA-Agents\.github\copilot-instructions.md" -Destination ".github\"
+Copy-Item -Path "DEMO-QA-Agents\.cursorrules" -Destination "."
+Copy-Item -Path "DEMO-QA-Agents\.claude\CLAUDE.md" -Destination ".claude\"
+```
+
+#### Keeping Configuration Updated
+
+When AI instruction files are updated in the QA Agents repository, run the update script to pull latest changes and sync all configuration files to the workspace root:
+
+| Platform | Command |
+|----------|---------|
+| macOS/Linux | `./DEMO-QA-Agents/setup/update.sh` |
+| Windows | `.\DEMO-QA-Agents\setup\update.ps1` |
+
+The script:
+1. Pulls latest changes from the QA Agents repo (`git pull --ff-only`)
+2. Copies updated files to workspace root (only if changed):
+   - `.claude/CLAUDE.md` (Claude Code)
+   - `.cursorrules` (Cursor)
+   - `.github/copilot-instructions.md` (GitHub Copilot)
+   - `HealthBridge.code-workspace`
+3. Rebuilds and reinstalls the VS Code chat extension
+4. Reports what was updated and how to apply changes in each tool
+
+Use `--no-pull` (or `-NoPull` on Windows) to skip git pull and only sync files.
+
+### Step 5: Install the VS Code Chat Extension
+
+The QA Agents repository includes a **VS Code extension** that registers custom chat participants (`@hb-*` agents) as native GitHub Copilot Chat integrations.
+
+#### Why Install the Extension?
+
+Without the extension, you would need to manually copy-paste agent prompt files into the chat window every time you want to run an analysis. The extension provides:
+
+| Capability | Without Extension | With Extension |
+|------------|------------------|----------------|
+| **Agent invocation** | Copy-paste prompt file into chat | Type `@hb-qa-code-review HM-14200` directly |
+| **Repository sync** | Manually `git pull` each repo before analysis | Automatic safe sync before every agent run |
+| **Manual sync** | Run shell script or pull each repo | Command Palette: "HealthBridge QA: Sync Repositories" |
+| **Sync cooldown** | N/A | 5-minute cooldown prevents redundant syncs |
+
+The extension's **automatic repository sync** ensures agents always analyze the latest code. It is safe by design -- worst case, a repo is skipped, never corrupted:
+
+| Safety Gate | Condition | Result |
+|-------------|-----------|--------|
+| Folder exists | Repository not cloned | Skipped |
+| On default branch | Developer on feature branch | Skipped |
+| Clean working tree | Uncommitted local changes | Skipped |
+| Fast-forward only | Would cause merge conflicts | Skipped with warning |
+
+**This means:**
+- Developers on feature branches are never affected (their repos are skipped)
+- Users with local changes are never affected (dirty repos are skipped)
+- QA users on default branches with clean repos get auto-synced seamlessly
+
+#### Install
+
+**macOS:**
+```bash
+# Navigate to extension directory (from workspace root)
+cd DEMO-QA-Agents/.vscode-extension
+
+# Install dependencies and compile
+npm install
+npm run compile
+
+# Package the extension
+echo -e "y\ny" | npx vsce package --allow-missing-repository
+
+# Install in VS Code
+"/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code" --install-extension hb-qa-agents-1.0.0.vsix --force
+```
+
+**Windows (PowerShell):**
+```powershell
+# Navigate to extension directory (from workspace root)
+cd DEMO-QA-Agents\.vscode-extension
+
+# Install dependencies and compile
+npm install
+npm run compile
+
+# Package the extension (press 'y' twice when prompted)
+npx vsce package --allow-missing-repository
+
+# Install in VS Code
+code --install-extension hb-qa-agents-1.0.0.vsix --force
+```
+
+**Windows (Git Bash):**
+```bash
+# Navigate to extension directory (from workspace root)
+cd DEMO-QA-Agents/.vscode-extension
+
+# Install dependencies and compile
+npm install
+npm run compile
+
+# Package the extension
+echo -e "y\ny" | npx vsce package --allow-missing-repository
+
+# Install in VS Code
+code --install-extension hb-qa-agents-1.0.0.vsix --force
+```
+
+> **Note:** On Windows, the `code` command is automatically added to PATH during VS Code installation. On macOS, you need to manually enable it via **Command Palette** > **"Shell Command: Install 'code' command in PATH"** (or use the full path as shown above).
+
+#### Reload VS Code
+
+1. Press **F1** or click **View > Command Palette**
+2. Type: **"Developer: Reload Window"**
+3. Press Enter
+
+#### Verify Installation
+
+Type `@hb` in GitHub Copilot Chat. You should see these agents:
+
+| Agent | Purpose | Example Usage |
+|-------|---------|---------------|
+| `@hb-qa-code-review` | Analyze branches for code quality and test coverage | `@hb-qa-code-review HM-14200` |
+| `@hb-qa-acceptance-tests` | Generate comprehensive acceptance test scenarios | `@hb-qa-acceptance-tests HM-14200` |
+| `@hb-qa-bug-report` | Generate ticket-ready bug reports from errors | `@hb-qa-bug-report [error details]` |
+| `@hb-bugfix-rca` | Root cause analysis for bugfixes | `@hb-bugfix-rca HM-14200 Release-4/2026` |
+| `@hb-requirements-analysis` | Analyze requirements with health domain compliance | `@hb-requirements-analysis HM-14200` |
+| `@hb-release-analysis` | Analyze releases for risk and coverage | `@hb-release-analysis release/Release-04/2026` |
+| `@hb-qa-feedback` | Interactive developer feedback on code review findings | Invoked after `@hb-qa-code-review` with `interactive` keyword |
+
+You can also trigger a manual sync anytime: **F1** > **"HealthBridge QA: Sync Repositories"**
+
+#### Troubleshooting (Extension)
+
+| Problem | Solution |
+|---------|----------|
+| Agents not showing up | Check Extensions panel for "HealthBridge QA Agents", reload VS Code (**F1** > "Developer: Reload Window") |
+| Agents not showing up (Windows) | Setup script may have crashed before installing. See **"Extension packaged but not installed"** below |
+| "No language model available" | Ensure GitHub Copilot extension is installed with active subscription |
+| Sync skipping all repos | Normal if you are on feature branches -- repos sync when you return to default branch |
+| AI does not recognize branch prefixes | Re-copy config files: `cp DEMO-QA-Agents/.github/copilot-instructions.md .github/` |
+| Cursor not following prompts | Ensure `.cursorrules` exists at workspace root |
+
+**Extension packaged but not installed (Windows)**
+
+If the setup script output shows `DONE Packaged: ...hb-qa-agents-1.0.0.vsix` but does NOT show `OK Extension installed via 'code' CLI`, the extension was built but never installed. This can happen when Node.js deprecation warnings cause PowerShell to abort the script early.
+
+Fix -- install the extension manually:
+```powershell
+code --install-extension "DEMO-QA-Agents\.vscode-extension\hb-qa-agents-1.0.0.vsix" --force
+```
+Then reload VS Code: **F1** > **"Developer: Reload Window"**
+
+---
+
+## Agent Usage Examples
+
+### Example 1: Code Review for a Branch
+
+**Scenario:** You have a branch `HM-14200` and want to analyze its code quality, test coverage, and identify risks.
+
+```
+@hb-qa-code-review HM-14200
+```
+
+**What you get:**
+- Risk assessment (Low / Medium / High)
+- Code quality analysis with hotfix pattern detection
+- **False Positive Prevention Protocol** -- 3-step verification (Verify, Compare, Counter-Argue) ensures high-confidence findings
+- Security vulnerability scan (SQL injection, XSS, etc.)
+- Test coverage gaps (Unit + E2E across 3 frameworks)
+- **Interactive Developer Feedback** -- review each finding with Valid / False Positive / Won't Fix / Provide More Information
+- Manual test checklist
+
+**Available Formats:**
+
+| Format | Shorthand | Flag | Word Limit | Output File | Use Case |
+|--------|-----------|------|------------|-------------|----------|
+| **Comprehensive** (default) | _(none)_ | `--format comprehensive` | 1300 words | `<TICKET>-code-review.md` | Internal QA audit, team review |
+| **Brief** | `brief` | `--format brief` | 300 words | `<TICKET>-code-review-brief.md` | GitHub PR comment, quick summary |
+| **Both** | `both` | `--format both` | 1300 + 300 | Both files above | Full workflow: post brief to PR, keep comprehensive for records |
+
+All outputs are saved to `DEMO-QA-Agents/reports/code-review/`.
+
+**Examples:**
+
+```
+@hb-qa-code-review HM-14200              # Comprehensive (default)
+@hb-qa-code-review HM-14200 brief        # Brief only (GitHub-ready)
+@hb-qa-code-review HM-14200 both         # Both formats simultaneously
+```
+
+---
+
+### Example 2: Generate Acceptance Tests
+
+**Scenario:** You need comprehensive test scenarios for a feature, bug fix, or requirement -- either from an existing branch or before development starts.
+
+**When to use:**
+- After code review, to plan detailed manual/automated testing
+- Before development, to define expected behavior from requirements
+- For bug fixes, to generate regression test scenarios
+- When validating implementation against original requirements
+
+**What you get:**
+- Given/When/Then (BDD) acceptance test scenarios
+- Happy path, alternative flow, error, and edge case coverage
+- Regression test areas identification
+- Automation candidates (Selenium, Playwright, Mobile)
+- Requirements validation (if original requirements provided) -- shows Implemented / Missing / Modified / Extra
+- Requirements Traceability Matrix (if requirements provided)
+
+**Output:** `DEMO-QA-Agents/reports/acceptance-tests/<TICKET>-acceptance-tests.md` (no word limit)
+
+**Input options:**
+
+| Input Type | What Happens |
+|------------|-------------|
+| Branch ID only | Analyzes code changes, generates test scenarios from implementation |
+| Branch ID + requirements | Analyzes code + validates implementation against requirements |
+| Requirements only (no branch) | Generates test scenarios from requirements before development |
+
+**Examples:**
+
+```
+@hb-qa-acceptance-tests HM-14200
+```
+
+```
+@hb-qa-acceptance-tests HM-14200
+
+Original Requirements:
+- Doctor can prescribe controlled substances with dual authorization
+- Prescription requires valid DEA number
+- Patient allergy check must pass before prescribing
+```
+
+---
+
+### Example 3: Bug Report from Error Message
+
+**Scenario:** Production error found in logs -- need a ticket-ready bug report with root cause and fix options.
+
+```
+@hb-qa-bug-report
+
+Error: System.NullReferenceException
+File: PrescriptionService.cs, line 234
+Message: Object reference not set to an instance of an object
+
+Stack trace:
+at HealthBridge.Services.PrescriptionService.ValidatePrescription()
+at HealthBridge.Controllers.PrescriptionController.Create()
+```
+
+**What you get:**
+- Root cause analysis with code snippet
+- **Codebase pattern search** -- finds similar bugs across all files
+- 3 fix options (Quick / Standard / Recommended) with effort estimates
+- Severity assessment (Critical / High / Medium / Low)
+- Ticket-ready fields (Summary, Description, Steps, Story Points)
+- Test recommendations
+- Output: `DEMO-QA-Agents/reports/bug-reports/<descriptive-name>-bug-report.md`
+
+---
+
+### Example 4: Root Cause Analysis for Bugfixes
+
+**Scenario:** A bug was found -- either as a hotfix in a release or during general development. You need to understand why it happened and how to prevent similar issues.
+
+**What you get:**
+- Timeline: When bug was introduced, discovered, fixed
+- Before/After code comparison
+- 5 Whys analysis + Bugfix pattern match (Edge Case / NULL / Missing Implementation / etc.)
+- Preventability assessment (Unit / Integration / E2E / Code Review / Requirements)
+- E2E test recommendations with actual implementation code (C#/TypeScript)
+
+**Outputs** (both in `DEMO-QA-Agents/reports/bugfix-rca/`):
+
+| Document | Word Limit | Content |
+|----------|-----------|---------|
+| `<TICKET>_Root_Cause_Analysis.md` | 1000 words | RCA report with timeline, 5 Whys, pattern match |
+| `<TICKET>_E2E_Test_Recommendations.md` | No limit | Test code recommendations to prevent recurrence |
+
+**Two modes** (auto-detected from input):
+
+| Mode | Trigger | What It Does |
+|------|---------|-------------|
+| **Hotfix** | Mention `Release-X/YEAR` | Compares bugfix branch vs release branch |
+| **Investigation** | Only ticket ID provided | Searches git history to trace bug origin |
+
+**Examples:**
+```
+@hb-bugfix-rca HM-14200 Release-4/2026    # Auto-detects Hotfix Mode
+@hb-bugfix-rca HM-14200                   # Auto-detects Investigation Mode
+```
+
+---
+
+### Example 5: Requirements Analysis Before Development
+
+**Scenario:** Product Owner has written requirements -- validate completeness before dev starts.
+
+```
+@hb-requirements-analysis HM-15000
+
+Ticket: HM-15000
+Title: Add electronic prescription refill workflow
+
+Requirements:
+- Patients can request prescription refills through the portal
+- Doctor reviews and approves or denies refill requests
+- Controlled substances require additional verification
+- Refill history is logged in patient medical record
+```
+
+**What you get:**
+- **Readiness score: X/10** (7+ = Ready for dev, <7 = More details needed)
+- Business gap analysis
+- Health domain compliance gaps (auto-detects domain from ticket keywords)
+- Edge case identification (28% of hotfixes!)
+- Multi-repository impact assessment
+- Missing requirements checklist
+- Questions for Product Owner
+- Output: `DEMO-QA-Agents/reports/requirements-analysis/HM-15000-requirements-analysis.md`
+
+**If score >= 7/10:** Agent automatically generates:
+- QA Test Plan: `HM-15000-qa-test-plan.md`
+- Dev Estimation: `HM-15000-dev-estimation.md`
+
+**If score < 7/10:** Stops with critical questions -- no QA/Dev work until clarified.
+
+---
+
+### Example 6: Release Risk Assessment
+
+**Scenario:** Preparing Release-04/2026 for production -- need risk analysis and testing plan.
+
+```
+@hb-release-analysis release/Release-04/2026
+```
+
+**What you get:**
+- Overall risk level (Low / Medium / Critical)
+- PR-by-PR analysis with categories (Bug Fix / Feature / Enhancement / etc.)
+- **E2E Regression Coverage** -- Shows which functional areas lack automated tests
+- **E2E Test Maintenance Plan** -- CREATE/UPDATE/DELETE recommendations
+- Manual testing checklist (prioritized)
+- Go/No-Go recommendation
+- Outputs (all in `DEMO-QA-Agents/reports/week-release/`):
+  - `Release-04-2026-Risk-Assessment.md` (Full analysis)
+  - `Release-04-2026-Release-Notes.md` (Customer-facing)
+  - `Release-04-2026-Slack-Message.md` (Team notification)
+
+---
+
+### Common Workflows
+
+#### Workflow 1: New Feature Development
+```
+1. @hb-requirements-analysis [ticket]          -> Validate requirements
+2. (If score >=7) -> QA Test Plan + Dev Estimation auto-generated
+3. [Developer implements]
+4. @hb-qa-code-review [branch]                 -> Pre-merge review
+5. @hb-qa-acceptance-tests [branch]            -> Final test scenarios
+```
+
+#### Workflow 2: Bug Investigation and Fix
+```
+1. @hb-qa-bug-report                           -> Analyze error, get fix options
+2. [Developer implements fix]
+3. @hb-bugfix-rca [branch]                     -> Understand root cause
+4. @hb-qa-code-review [branch]                 -> Ensure fix quality
+```
+
+#### Workflow 3: Release Preparation
+```
+1. @hb-release-analysis release/Release-XX/YYYY
+2. Review risk assessment report
+3. Execute E2E test plan (Section 4.4)
+4. Perform manual testing (Section 6)
+5. Share Slack message with team
+```
+
+#### Workflow 4: PR Review Process
+```
+1. @hb-qa-code-review [branch] both
+2. Post brief report to GitHub PR
+3. Use comprehensive report for team review
+4. If critical issues -> Request changes
+5. If ready -> Approve
+```
+
+> **Note:** Repository sync happens automatically before each agent run. No need to sync manually unless you want to verify repo status via **F1** > "HealthBridge QA: Sync Repositories".
+
+---
+
+## Folder Structure
+
+```
+DEMO-QA-Agents/
+├── README.md                                   # This file
+├── CHANGELOG.md                                # Version history
+├── HealthBridge.code-workspace                 # VS Code multi-repo workspace file
+├── .cursorrules                                # Cursor AI instructions (copy to workspace root)
+├── .github/
+│   ├── copilot-instructions.md                 # GitHub Copilot instructions (copy to workspace root)
+│   ├── workflows/
+│   │   └── validate-prompts.yml                # CI/CD prompt validation
+│   └── CODEOWNERS                              # Code ownership rules
+│
+├── .claude/
+│   ├── CLAUDE.md                               # Claude Code global instructions (copy to workspace root)
+│   └── settings.local.json                     # Safe tool permissions
+│
+├── .vscode-extension/                          # VS Code Chat Extension
+│   ├── src/
+│   │   ├── extension.ts                        # Extension activation + agent registration + sync integration
+│   │   └── repo-sync.ts                        # Safe repository sync engine (3 safety gates)
+│   ├── package.json                            # Extension manifest + sync command registration
+│   └── tsconfig.json
+│
+├── agents/                                     # Agent Definitions
+│   └── vscode-chat-participants/
+│       ├── qa-code-review.md                   # Code review agent
+│       ├── qa-acceptance-tests.md              # Acceptance test generation agent
+│       ├── qa-bug-report.md                    # Bug report agent
+│       ├── qa-feedback.md                      # Developer feedback agent
+│       ├── bugfix-rca.md                       # Root cause analysis agent
+│       ├── requirements-analysis.md            # Requirements validation agent
+│       └── release-analysis.md                 # Release risk assessment agent
+│
+├── prompts/                                    # Prompt Templates
+│   ├── code-review-qa/                         # Code review prompt + templates + findings-detailed
+│   │   ├── code-review-qa.md
+│   │   ├── code-review-template.md
+│   │   ├── code-review-brief-template.md
+│   │   ├── findings-detailed-template.md
+│   │   └── README.md
+│   ├── bug-report/                             # Bug report template
+│   │   └── bug-report-template.md
+│   ├── bugfix-rca/                             # Root cause analysis template
+│   │   └── bugfix-rca-template.md
+│   └── requirements-analysis/                  # Requirements analysis template (7/10 scoring)
+│       └── requirements-analysis-template.md
+│
+├── context/                                    # Shared Context Files
+│   ├── e2e-test-coverage-map.md                # Which E2E frameworks cover which functional areas
+│   ├── jira-field-mappings.md                  # Auto-detect ticket components from file paths
+│   ├── code-review-false-positive-prevention.md  # Known safe patterns to avoid flagging
+│   ├── healthbridge-repository-dependencies.md # Consumer/Provider dependency map across all repos
+│   ├── domain-prescriptions.md                 # Domain: Prescriptions & Medications
+│   ├── domain-patient-records.md               # Domain: Patient Records & Charts
+│   └── README.md
+│
+├── docs/                                       # Documentation
+│   └── PO_GETTING_STARTED.md                   # Product Owner quick-start guide
+│
+├── actions/                                    # GitHub Actions (automation)
+│   ├── ai-code-review-qa/
+│   │   └── action.yml
+│   ├── bugfix-rca/
+│   │   └── action.yml
+│   └── release-assessment/
+│       └── action.yml
+│
+├── setup/                                      # Setup & Update Scripts
+│   ├── setup.bat                               # Windows double-click setup (runs setup.ps1)
+│   ├── setup.sh                                # macOS/Linux full environment setup
+│   ├── setup.ps1                               # Windows PowerShell full environment setup
+│   ├── update.bat                              # Windows double-click update (runs update.ps1)
+│   ├── update.sh                               # macOS/Linux update (pull + config + extension)
+│   ├── update.ps1                              # Windows PowerShell update (pull + config + extension)
+│   ├── update-extension.sh                     # macOS/Linux extension-only rebuild + install
+│   └── update-extension.ps1                    # Windows extension-only rebuild + install
+│
+├── scripts/                                    # Utility Scripts
+│   ├── update-all-repos.sh                     # Fetch/pull all repos in one command
+│   └── README.md
+│
+└── reports/                                    # Generated Outputs
+    ├── code-review/                            # PR code review reports (brief & comprehensive)
+    ├── acceptance-tests/                       # Acceptance test scenarios
+    ├── bug-reports/                            # Bug reports and RCA documents
+    ├── bugfix-rca/                             # Root cause analysis reports
+    ├── requirements-analysis/                  # Requirements + QA plan + dev estimation
+    ├── week-release/                           # Release risk assessments and notes
+    ├── feedback/                               # Developer feedback JSON files
+    ├── qa-test-plan/                           # QA test plan outputs
+    └── dev-estimation/                         # Development estimation outputs
+```
+
+---
+
+## Shared Context Files
+
+Agents read shared context files from `context/` before analysis to improve accuracy and reduce false positives.
+
+| Context File | Path | Used By | Purpose |
+|--------------|------|---------|---------|
+| **E2E Coverage Map** | `context/e2e-test-coverage-map.md` | All agents | Maps functional areas to E2E frameworks (Selenium/Playwright/Mobile) |
+| **Ticket Field Mappings** | `context/jira-field-mappings.md` | Bug Report, Release | Auto-detects ticket components from file paths |
+| **False Positive Prevention** | `context/code-review-false-positive-prevention.md` | Code Review | 6 rules: framework safety nets, data flow guarantees, standard patterns, tool verification |
+| **Repository Dependencies** | `context/healthbridge-repository-dependencies.md` | All agents | Consumer/Provider dependency map, blast radius, shared databases |
+
+### Domain Knowledge Context
+
+Domain context files provide health management regulatory, business, and compliance knowledge for specific functional areas. Agents auto-detect the domain from ticket keywords and load the relevant file.
+
+| Context File | Path | Domain | Trigger Keywords |
+|--------------|------|--------|-----------------|
+| **Prescriptions & Medications** | `context/domain-prescriptions.md` | Rx & Pharmacy | prescription, medication, refill, dosage, controlled substance, pharmacy, DEA |
+| **Patient Records** | `context/domain-patient-records.md` | Medical Records | patient, chart, diagnosis, ICD, medical history, HIPAA, records |
+
+---
+
+## Output Locations
+
+Reports are saved to `DEMO-QA-Agents/reports/` (from workspace root):
+
+| Directory | Content | Word Limit |
+|-----------|---------|------------|
+| **`reports/code-review/`** | PR code review reports (brief and comprehensive) + findings-detailed analysis | 1300 / 300 words |
+| **`reports/acceptance-tests/`** | Acceptance test scenarios with BDD format | No limit |
+| **`reports/bug-reports/`** | Ticket-ready bug reports with fix recommendations | 600 words |
+| **`reports/bugfix-rca/`** | Root cause analysis and E2E test recommendations | 1000 words |
+| **`reports/requirements-analysis/`** | Requirements analysis + QA test plan + dev estimation | 1000 words |
+| **`reports/week-release/`** | Release risk assessment + release notes + Slack message | 1500 words |
+| **`reports/feedback/`** | Developer feedback JSON files for accuracy tracking | N/A (JSON) |
+
+---
+
+## Prompt Templates
+
+| Prompt | Location | Description |
+|--------|----------|-------------|
+| Code Review QA | `prompts/code-review-qa/` | PR analysis with hotfix pattern detection, findings-detailed template, brief format |
+| Bug Report | `prompts/bug-report/` | Error analysis + ticket-ready bug reports with severity criteria |
+| Bugfix RCA | `prompts/bugfix-rca/` | Root cause analysis framework |
+| Requirements Analysis | `prompts/requirements-analysis/` | Requirements validation with 7/10 scoring gate |
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+| Problem | Cause | Solution |
+|---------|-------|----------|
+| Agent does not recognize ticket prefix | Config files not at workspace root | Re-copy: `cp DEMO-QA-Agents/.github/copilot-instructions.md .github/` |
+| "No tests found" for a covered area | Stale E2E repo refs | Agent should `git fetch origin` before searching; verify with `git log origin/main -1` |
+| Report has wrong section structure | Agent did not read template | Verify template exists in `prompts/<category>/` |
+| Agent asks for confirmation instead of executing | Missing execution protocol in config | Re-copy `.claude/CLAUDE.md` or `.cursorrules` to workspace root |
+| `git checkout` used during analysis | Agent violated safety rule | Report as bug; agents must use `git fetch` + remote tracking branches only |
+| Empty report generated | Branch not found in any repo | Verify branch exists: `git branch -r --list "*HM-14200*"` in each repo |
+| Windows: scripts fail silently | Execution policy | Run with: `powershell -ExecutionPolicy Bypass -File <script>` |
+| Extension not loading after install | VS Code needs reload | **F1** > "Developer: Reload Window" |
+
+### Verifying Agent Configuration
+
+```bash
+# Check that config files exist at workspace root
+ls -la .github/copilot-instructions.md .cursorrules .claude/CLAUDE.md
+
+# Check that all repos are cloned
+ls -d HealthBridge-*/
+
+# Check that extension is installed
+code --list-extensions | grep hb-qa
+
+# Check branch exists in a specific repo
+cd HealthBridge-Web && git branch -r --list "*HM-14200*"
+```
+
+---
+
+## Contributing
+
+### Adding New Agents
+
+1. Create agent definition file in `agents/vscode-chat-participants/`
+2. Define the agent's purpose, inputs, outputs, and execution protocol
+3. Create prompt template in `prompts/<agent-name>/`
+4. Register the agent in `.vscode-extension/src/extension.ts`
+5. Update this README with the new agent
+
+### Adding New Context Files
+
+1. Create context file in `context/`
+2. Follow the naming convention: `domain-<area>.md` for domain knowledge
+3. Add trigger keywords for auto-detection
+4. Update the shared context table in `.claude/CLAUDE.md` and config files
+
+### Modifying Templates
+
+1. Edit template in `prompts/<category>/<template>.md`
+2. Ensure all agents referencing the template are updated
+3. Test the template manually with a real ticket before committing
+4. Run the update script to sync config files: `./setup/update.sh`
+
+### Best Practices
+
+- Keep prompts focused on specific tasks
+- Include clear input/output specifications
+- Add example usage in each prompt
+- Reference domain context files for health management compliance
+- Follow existing naming conventions for consistency
+- Test prompts manually before committing
+- Document usage examples in agent definition files
+
+---
+
+## Additional Documentation
+
+| Document | Path | Audience |
+|----------|------|----------|
+| Product Owner Quick Start | `docs/PO_GETTING_STARTED.md` | POs learning to use requirements analysis agent |
+| Changelog | `CHANGELOG.md` | All users -- version history and release notes |
+
+---
+
+## Future: GitHub Actions Integration
+
+GitHub Actions are planned to automate:
+- Automatic PR analysis on pull request creation
+- Release risk assessment on release branch creation
+- RCA generation on hotfix branch merges
+
+Current status: Action definitions exist in `actions/` but are **not yet active** in CI/CD pipelines.
+
+---
+
+## Note
+
+This is a **demo/reference implementation** showcasing how multi-agent AI systems can be structured for QA automation in a multi-repository software ecosystem. The domain (health management), repository names, and ticket prefixes are fictional examples designed to illustrate the architecture and agent coordination patterns.
+
+---
+
+*Maintained by: HealthBridge QA Team*

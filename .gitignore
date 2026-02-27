@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Reports (generated outputs — excluded in production, but example reports are tracked in this demo)
+# reports/
+
+
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Tasks for AI
+.tasks/

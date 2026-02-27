@@ -1,0 +1,44 @@
+{
+  "ticket": "HM-14200",
+  "branch": "HM-14200-get-prescriptions-list-of-patient-prescriptions",
+  "repository": "HealthBridge-Web",
+  "reviewDate": "2026-02-27",
+  "feedbackMode": "interactive",
+  "findings": [
+    {
+      "id": 1,
+      "section": "6 Critical",
+      "finding": "SQL syntax error: ISNULL(MAX([ID], 0)) — MAX takes 1 argument",
+      "severity": "critical",
+      "initialVerdict": "provide_more_information",
+      "deepAnalysis": true,
+      "deepAnalysisResult": "Confirmed — 100% failure rate, 25 sibling scripts use correct pattern",
+      "finalVerdict": "forwarded_to_developer",
+      "comment": "User forwarded to developer for resolution"
+    },
+    {
+      "id": 2,
+      "section": "3.2 Hotfix Patterns",
+      "finding": "DateTime.TryParse culture-dependent in API endpoint",
+      "severity": "warning",
+      "initialVerdict": "provide_more_information",
+      "deepAnalysis": true,
+      "deepAnalysisResult": "FALSE POSITIVE — 20+ sibling files use same pattern, ISO 8601 is culture-invariant in .NET",
+      "finalVerdict": "forwarded_to_developer",
+      "comment": "User forwarded to developer for awareness"
+    },
+    {
+      "id": 3,
+      "section": "3.2 Hotfix Patterns",
+      "finding": "URI points to non-existent prescriptiondetails endpoint",
+      "severity": "suggestion",
+      "initialVerdict": "provide_more_information",
+      "deepAnalysis": true,
+      "deepAnalysisResult": "Low risk — endpoint exists in parallel branch HM-14201. Bonus: parameter name mismatch (id vs prescriptionKey)",
+      "finalVerdict": "forwarded_to_developer",
+      "comment": "User forwarded to developer for awareness"
+    }
+  ],
+  "overallAccuracy": null,
+  "notes": "All findings forwarded to developer by QA reviewer. Deep analysis performed on all 3 findings. Finding #2 identified as false positive during deep analysis."
+}
