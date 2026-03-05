@@ -164,26 +164,17 @@ These agents can be invoked by describing the task or using the Task tool with s
 
 | Agent | Purpose | How to Invoke | Definition |
 |-------|---------|---------------|------------|
-| **Code Review** | Analyze PR/branch for code quality, test gaps, risks | "Review branch HM-xxxxx" | `agents/vscode-chat-participants/qa-code-review.md` |
-| **Acceptance Tests** | Generate Given/When/Then test scenarios | "Generate acceptance tests for HM-xxxxx" | `agents/vscode-chat-participants/qa-acceptance-tests.md` |
-| **Bug Report** | Analyze errors and generate ticket-ready bug reports | "Create bug report for [error]" | `agents/vscode-chat-participants/qa-bug-report.md` |
+| **Code Review** | Analyze PR/branch for code quality, test gaps, risks | "Review branch HM-xxxxx" | `agents/vscode-chat-participants/code-review.md` |
+| **Acceptance Tests** | Generate Given/When/Then test scenarios | "Generate acceptance tests for HM-xxxxx" | `agents/vscode-chat-participants/acceptance-tests.md` |
+| **Bug Report** | Analyze errors and generate ticket-ready bug reports | "Create bug report for [error]" | `agents/vscode-chat-participants/bug-report.md` |
 | **Bugfix RCA** | Root cause analysis for hotfixes | "RCA for hotfix HM-xxxxx" | `agents/vscode-chat-participants/bugfix-rca.md` |
 | **Requirements Analysis** | Pre-development requirements validation | "Analyze requirements for HM-xxxxx" | `agents/vscode-chat-participants/requirements-analysis.md` |
 | **Release Analysis** | Analyze releases for risk and coverage | "Analyze Release-XX/YYYY" | `agents/vscode-chat-participants/release-analysis.md` |
-| **Feedback** | Interactive developer feedback on code review findings | "Feedback on HM-xxxxx review" | `agents/vscode-chat-participants/qa-feedback.md` |
+| **Feedback** | Interactive developer feedback on code review findings | "Feedback on HM-xxxxx review" | `agents/vscode-chat-participants/feedback.md` |
 
 ### Predictive Code Analysis
 
-The **Code Review Agent** includes **Predictive Bug Detection** — proactive analysis that scans code for patterns that historically cause production hotfixes:
-
-| Pattern Category | % of Hotfixes | Detection Examples |
-|------------------|---------------|-------------------|
-| Edge Cases | 28% | Empty patient lists, boundary dates for prescription validity, zero-dose quantities |
-| Authorization Gaps | 22% | Doctor accessing patient outside department, role-based permission mismatches |
-| NULL Handling | 18% | Missing allergy records, null insurance provider, absent emergency contacts |
-| Logic/Condition Errors | 16% | Drug interaction checks skipped, overlapping appointment slots |
-| Data Validation | 10% | Invalid dosage formats, expired license numbers, malformed ICD codes |
-| Missing Implementation | 6% | TODOs in discharge workflows, stubs in referral processing |
+The **Code Review Agent** includes **Predictive Bug Detection** — proactive analysis that scans code for patterns that historically cause production hotfixes. Pattern tables with percentages and detection focus are defined per-repository in `context/historical-bugfix-patterns.md`.
 
 **Result:** Issues are flagged BEFORE merge, reducing hotfix rate.
 
@@ -248,6 +239,7 @@ Before running any analysis, read these shared context files:
 | JIRA Field Mappings | `context/jira-field-mappings.md` | Auto-detect JIRA components from file paths |
 | False Positive Prevention | `context/code-review-false-positive-prevention.md` | Known safe patterns to avoid flagging as issues |
 | Repository Dependencies | `context/healthbridge-repository-dependencies.md` | Consumer/Provider dependency map across all repos — blast radius, shared databases, API connections |
+| Historical Bugfix Patterns | `context/historical-bugfix-patterns.md` | Canonical source for all 5 repo-specific bugfix pattern tables with percentages and detection focus |
 
 ---
 
@@ -369,11 +361,13 @@ cd HealthBridge-Mobile-Tests && git fetch origin && cd ..
 **Then search on remote tracking branch** (not local branch):
 
 ```bash
-# Search in latest main without checking it out
-git grep -n "<keyword>" origin/main -- "*.cs"
+# Search in latest main without checking it out (use correct extension per repo)
+cd HealthBridge-Selenium-Tests && git grep -n "<keyword>" origin/main -- "*.py"
+cd HealthBridge-E2E-Tests && git grep -n "<keyword>" origin/main -- "*.spec.ts"
+cd HealthBridge-Mobile-Tests && git grep -n "<keyword>" origin/main -- "*.js"
 
 # Read a specific file from remote main
-git show origin/main:path/to/TestFile.cs
+git show origin/main:path/to/TestFile.py
 ```
 
 **Report to user:** "Fetched latest from E2E test repositories"
@@ -409,13 +403,13 @@ After fetching latest, search on remote tracking branch:
 
 ```bash
 # Search across ALL test directories in latest main
-cd HealthBridge-Selenium-Tests && git grep -n "<keyword>" origin/main -- "*.cs"
+cd HealthBridge-Selenium-Tests && git grep -n "<keyword>" origin/main -- "*.py"
 ```
 
 Or use your IDE's search tools on local files:
 
 ```
-Search pattern: "<keyword>" path: "HealthBridge-Selenium-Tests" glob: "*.cs"
+Search pattern: "<keyword>" path: "HealthBridge-Selenium-Tests" glob: "*.py"
 ```
 
 **Do NOT limit search to specific subdirectories initially.**
@@ -445,80 +439,17 @@ When reporting E2E coverage, split Selenium into UI and Integration:
 
 ## Historical Bugfix Patterns
 
-**ALL agents must check for these patterns based on repository type:**
+**ALL agents must check for these patterns based on repository type.**
 
-### Web / API Patterns (HM-* branches in HealthBridge-Web)
+**Canonical source:** `context/historical-bugfix-patterns.md` — contains all 5 repository-specific pattern tables with percentages and detection focus. All agents read this file at runtime to get the correct patterns for the analyzed repository.
 
-Based on RCA of 50+ production bugfixes:
-
-| Pattern | % | Detection Focus |
-|---------|---|-----------------|
-| **Edge Cases** | 28% | Empty patient lists, boundary dates for prescription validity, zero-dose quantities |
-| **Authorization Gaps** | 22% | Doctor accessing patient outside department, role-based permission mismatches |
-| **NULL Handling** | 18% | Missing allergy records, null insurance provider, absent emergency contacts |
-| **Logic/Condition Errors** | 16% | Drug interaction checks skipped, overlapping appointment slots, discharge without all sign-offs |
-| **Data Validation** | 10% | Invalid dosage formats, expired license numbers, malformed diagnosis codes |
-| **Missing Implementation** | 6% | TODOs in discharge workflows, stubs in referral processing, incomplete audit logging |
-
-### Portal Patterns (HBP-* branches) — C# / React / TypeScript
-
-Based on RCA of 30+ bugfixes:
-
-| Pattern | % | Detection Focus |
-|---------|---|-----------------|
-| **Permission/Authorization** | 25% | API fetches without permission guards, missing `enabled` flags in React Query |
-| **NULL/Undefined Handling** | 20% | Missing optional chaining, nullable DB fields mapped to non-nullable |
-| **Cross-Year/Date Calculations** | 18% | `.Year` arithmetic without month handling, period copying across years |
-| **UI Event Handling & Refs** | 15% | Ref scope issues, blur/mousedown containment checks, `props.children` unreliability |
-| **Logic/Condition Errors** | 12% | `return` vs `continue` in loops, missing condition cases |
-| **Error Propagation** | 10% | Errors breaking pages instead of graceful degradation |
-
-**Key differences from HealthBridge-Web:** Portal has significantly more permission bugs (25% vs 5%) and UI lifecycle issues (15% vs 2%) due to React frontend.
-
-### Mobile Patterns (HMM-* branches)
-
-Based on RCA of 20+ mobile app bugfixes:
-
-| Pattern | % | Detection Focus |
-|---------|---|-----------------|
-| **Calculation/Logic Errors** | 30% | Date math, week boundaries, dosage calculations, appointment duration |
-| **State Management Issues** | 25% | Riverpod lifecycle, async races, disposed widget access |
-| **Navigation/UI Lifecycle** | 20% | Modal handling, missing pop() calls, back button behavior |
-| **Edge Cases** | 15% | Empty patient lists, optional data fields, offline mode boundaries |
-| **NULL/Optional Handling** | 5% | Async nulls, state access timing |
-| **Missing Implementation** | 5% | Incomplete features, partial offline support |
-
-### Microservice API Patterns (HM-* branches in microservice repos) — C# / .NET Core
-
-Based on RCA of bugfixes across microservice repositories:
-
-| Pattern | % | Detection Focus |
-|---------|---|-----------------|
-| **NULL Handling** | 22% | `FirstOrDefault()` without null check, nullable DB fields, empty collection `.First()` |
-| **Configuration/DI Errors** | 18% | Missing DI registrations, wrong service lifetimes (scoped vs transient), auth setup |
-| **Logic/Condition Errors** | 16% | Swapped constructor parameters, incorrect condition ordering, wrong method overloads |
-| **Database/EF Core Issues** | 14% | Wrong column types (`int` vs `tinyint`), missing `.Include()`, double joins, FK misconfig |
-| **Edge Cases** | 12% | Boundary values, empty collections, optional parameter defaults, pagination missing |
-| **Type Casting Errors** | 8% | Value Object vs primitive confusion in LINQ, wrong DB column type declarations |
-| **Permission/Authorization** | 5% | Missing permission guards, incorrect access level checks |
-| **Concurrency/Race Conditions** | 5% | `DbUpdateConcurrencyException`, operation ordering, message queue sequencing |
-
-**Key differences from HealthBridge-Web:** Microservices have significantly more Configuration/DI bugs (18% vs 3%) and Database/EF Core issues (14% vs 5%) due to distributed architecture and EF Core configuration complexity. Claims-Processing uniquely has concurrency as its #1 pattern (23%) due to multiple services accessing shared state.
-
-### Claims-Processing Patterns (HM-* branches) — C# / .NET Core
-
-Based on RCA of 43 bugfixes:
-
-| Pattern | % | Detection Focus |
-|---------|---|-----------------|
-| **Concurrency/Race Conditions** | 23% | `DbUpdateConcurrencyException`, EF Core change tracking races, operation ordering |
-| **CI/CD & Deployment** | 19% | Workflow bugs, Docker path errors, deploy script logic, tag formatting |
-| **Data Validation/Uniqueness** | 14% | Missing composite keys, incorrect uniqueness checks, ClaimId scoping |
-| **Logic/Condition Errors** | 12% | Wrong terminal status values, incorrect polling conditions |
-| **Configuration/DI Errors** | 12% | Missing options, wrong service lifetime, name shadowing |
-| **Edge Cases** | 9% | Pagination missing, negative backoff, infinite loops, empty entity handling |
-| **NULL Handling** | 7% | Nullable fields, `FirstOrDefault` returning null |
-| **Error Handling/Retry** | 5% | Missing retry on transient failures |
+| Repository | Pattern Table |
+|------------|--------------|
+| HealthBridge-Web | Web / API Patterns |
+| HealthBridge-Portal | Portal Patterns |
+| HealthBridge-Mobile | Mobile / Flutter Patterns |
+| HealthBridge-Api, HealthBridge-Prescriptions-Api | Microservice API Patterns |
+| HealthBridge-Claims-Processing | Claims-Processing Patterns |
 
 ---
 
@@ -568,13 +499,13 @@ DEV Estimation -> reports/requirements-analysis/<TICKET-ID>-dev-estimation.md
 | Document Type | Word Limit | Output Location |
 |---------------|------------|-----------------|
 | Code Review Report | 1300 words | `reports/code-review/<TICKET-ID>-code-review.md` |
-| Code Review Brief | 450 words | `reports/code-review/<TICKET-ID>-code-review.md` |
+| Code Review Brief | 450 words | `reports/code-review/<TICKET-ID>-code-review-brief.md` |
 | Code Review Deep Analysis | No limit | `reports/code-review/<TICKET-ID>-findings-detailed.md` |
 | Code Review Feedback | N/A (JSON) | `reports/feedback/<TICKET-ID>-feedback.json` |
 | Acceptance Tests | No limit | `reports/acceptance-tests/<TICKET-ID>-acceptance-tests.md` |
-| Bug Report | 600 words | `reports/bug-reports/<TICKET-ID>-bug-report.md` |
-| Bugfix RCA | 1000 words | `reports/bugfix-rca/<TICKET-ID>-rca.md` |
-| Requirements Analysis | 1000 words | `reports/requirements-analysis/<TICKET-ID>-requirements-analysis.md` |
+| Bug Report | 900 words | `reports/bug-reports/<TICKET-ID>-bug-report.md` |
+| Bugfix RCA | 1500 words | `reports/bugfix-rca/<TICKET-ID>-rca.md` |
+| Requirements Analysis | 1500 words | `reports/requirements-analysis/<TICKET-ID>-requirements-analysis.md` |
 | Release Risk Assessment | 1500 words | `reports/week-release/Release-XX-YYYY-Risk-Assessment.md` |
 | Release Notes | No limit | `reports/week-release/Release-XX-YYYY-Release-Notes.md` |
 | Slack Message | 300 words | `reports/week-release/Release-XX-YYYY-Slack-Message.md` |

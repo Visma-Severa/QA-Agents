@@ -1,6 +1,6 @@
 # Code Review Agent
 
-**Agent:** `@hb-qa-code-review`
+**Agent:** `@hb-code-review`
 **Purpose:** Analyze PR/branch for code quality, test gaps, risks, and historical bugfix pattern matches.
 **Output:** `reports/code-review/<TICKET-ID>-code-review.md`
 
@@ -15,6 +15,8 @@ Before running any analysis, read these files:
 | Context | `context/e2e-test-coverage-map.md` | Which E2E frameworks cover which functional areas |
 | Context | `context/domain-prescriptions.md` | Domain-specific rules for prescription workflows |
 | Context | `context/code-review-false-positive-prevention.md` | Known safe patterns to avoid flagging as issues |
+| Context | `context/historical-bugfix-patterns.md` | Repo-specific bugfix pattern tables with percentages |
+| Context | `context/healthbridge-repository-dependencies.md` | Consumer/Provider dependency map — blast radius, shared databases, API connections |
 | Template | `prompts/code-review-qa/code-review-template.md` | Exact report structure to follow |
 | Template | `prompts/code-review-qa/code-review-brief-template.md` | Brief report structure |
 
@@ -40,6 +42,9 @@ When user provides a ticket ID (e.g., "HM-14200" or "analyze HM-14200"):
    ```bash
    cd HealthBridge-Web && git fetch origin && git branch -r --list "*<TICKET-ID>*"
    cd HealthBridge-Api && git fetch origin && git branch -r --list "*<TICKET-ID>*"
+   cd HealthBridge-Claims-Processing && git fetch origin && git branch -r --list "*<TICKET-ID>*"
+   cd HealthBridge-Prescriptions-Api && git fetch origin && git branch -r --list "*<TICKET-ID>*"
+   cd HealthBridge-Portal && git fetch origin && git branch -r --list "*<TICKET-ID>*"
    cd HealthBridge-Mobile && git fetch origin && git branch -r --list "*<TICKET-ID>*"
    ```
 3. **Parse format parameter** (if provided): `brief`, `comprehensive`, or `both` (default: comprehensive)
@@ -53,7 +58,7 @@ When user provides a ticket ID (e.g., "HM-14200" or "analyze HM-14200"):
 | `HM-14200` | Auto-detect repo, comprehensive + interactive feedback | Execute immediately |
 | `HM-14200 brief` | Auto-detect repo, brief + interactive feedback | Execute immediately |
 | `HM-14200 both` | Auto-detect repo, both reports + interactive feedback | Execute immediately |
-| `HM-14200 --no-feedback` | Comprehensive only, static Section 11 | Execute immediately |
+| `HM-14200 --no-feedback` | Comprehensive only, static Section 10 | Execute immediately |
 | `analyze HM-14200` | Auto-detect repo, comprehensive + interactive feedback | Execute immediately |
 
 **Agent Responsibility:** The agent is responsible for complete task delivery from ticket ID to final report(s). Never stop mid-execution to ask clarifying questions that can be auto-detected (repo, format, etc.).
@@ -85,18 +90,20 @@ Both formats enforce **HARD LIMITS**:
 - **Brief:** 450 words maximum (HARD FAIL if exceeded)
 - **Comprehensive:** 1300 words maximum (HARD FAIL if exceeded)
 
+**Word count exception:** Section 10 (Developer Feedback) is **excluded** from the word count limit. Count only Sections 1-9 (+ 5.5 if present).
+
 If word count limit is exceeded, the agent will:
 1. **STOP execution** (do not create report file)
 2. **Display error** with word count breakdown by section
-3. **Provide suggestions** for reducing word count
-4. **User must adjust** filtering/content and re-run
+3. **Provide suggestions** for reducing word count (e.g., shorten code snippets, compress tables, remove low-severity suggestions)
+4. **Wait for user instruction** — do NOT retry automatically. The user may say "trim and regenerate" or adjust scope manually. If the user says to proceed, apply the suggested reductions and regenerate once.
 
 ### Content Filtering Logic
 
 | Content Type | Brief Report | Comprehensive Report |
 |--------------|--------------|---------------------|
 | Critical Issues | All (collapsed sections) | All (expanded with details) |
-| High Issues | All (or summary if space limited) | All (full details) |
+| High Issues | Excluded (450-word limit) | All (full details) |
 | Medium Issues | Excluded | All |
 | Low Issues | Excluded | All |
 | Test Coverage | Summary (counts only) | Full tables with file:line |
@@ -119,51 +126,23 @@ When user provides a ticket ID (e.g., "HM-14200"):
 1. **Search ALL repositories** for branches matching the ticket ID
 2. **Report which repo found** (e.g., "Found in HealthBridge-Web")
 3. **Proceed immediately** with analysis
+4. **If branch not found in ANY repo:** Stop immediately and notify the user: "Branch matching `<TICKET-ID>` not found in any repository. Please verify the ticket ID and ensure the branch has been pushed to remote." Do NOT hallucinate a branch or proceed with analysis.
 
 ### Repository Search Order
 
 | Branch Prefix | Search These Repos (in order) | Technology |
 |---------------|-------------------------------|------------|
-| `HM-*` | HealthBridge-Web, HealthBridge-Api, HealthBridge-Claims-Processing, HealthBridge-Prescriptions-Api | C#/.NET Core, TypeScript/React |
+| `HM-*` | HealthBridge-Web, HealthBridge-Api, HealthBridge-Claims-Processing, HealthBridge-Prescriptions-Api | C#/.NET Core |
+| `HBP-*` | HealthBridge-Portal | C#/.NET Core, React/TypeScript |
 | `HMM-*` | HealthBridge-Mobile | Flutter/Dart |
 
 ---
 
 ## Historical Bugfix Patterns
 
-**IMPORTANT**: Use the correct pattern table based on branch prefix:
-- **HM-*** -> Use Web/API patterns
-- **HMM-*** -> Use Mobile/Flutter patterns
+**Before analysis, read:** `context/historical-bugfix-patterns.md` — canonical source for all pattern tables.
 
-### Web / API Patterns (HM-* branches)
-
-Based on RCA of 50+ production bugfixes:
-
-| Pattern | % | Detection Focus |
-|---------|---|-----------------|
-| **Edge Cases** | 28% | Empty patient list, boundary dates for prescription validity, null collections |
-| **Authorization Gaps** | 22% | Doctor accessing patient outside department, missing permission checks on endpoints |
-| **NULL Handling** | 18% | Missing allergy data, null insurance provider, optional fields without guards |
-| **Logic/Condition Errors** | 16% | Drug interaction check skipped, incorrect date comparison, copy-paste mistakes |
-| **Data Validation** | 10% | Invalid dosage format, expired license number, boundary values at input layer |
-| **Missing Implementation** | 6% | TODO in discharge workflow, incomplete error handling, stub methods |
-
-**Detection Rate:** 64% of bugfixes are detectable through static code analysis.
-
-### Mobile Patterns (HMM-* branches)
-
-Based on RCA of 20+ mobile bugfixes:
-
-| Pattern | % | Detection Focus |
-|---------|---|-----------------|
-| **Calculation/Logic Errors** | 30% | Dosage math, date calculations, appointment projections |
-| **State Management Issues** | 25% | Riverpod lifecycle, async races, disposed widget access |
-| **Navigation/UI Lifecycle** | 20% | Modal handling, back button behavior, missing pop() calls |
-| **Edge Cases** | 15% | Empty patient lists, optional data, boundary values |
-| **NULL/Optional Handling** | 5% | Async nulls, state access timing |
-| **Missing Implementation** | 5% | Incomplete features, partial handling |
-
-**Detection Rate:** 80% of mobile bugfixes are detectable through automated testing.
+**Use the correct pattern table based on repository**, not just branch prefix. The context file contains the routing table and all 5 repository-specific pattern tables with percentages and detection focus.
 
 ---
 
@@ -214,8 +193,9 @@ Return structured findings: File, Purpose, Changes, Issues, Bugfix Patterns Dete
 
 **B. Test Coverage Analyzer Agent**
 
-Before spawning, fetch latest from E2E repositories:
+Before spawning, fetch latest from ALL E2E repositories:
 ```bash
+cd HealthBridge-Selenium-Tests && git fetch origin
 cd HealthBridge-E2E-Tests && git fetch origin
 cd HealthBridge-Mobile-Tests && git fetch origin
 ```
@@ -223,11 +203,16 @@ cd HealthBridge-Mobile-Tests && git fetch origin
 Includes:
 - **Testability Assessment** (PART 0): Check method signatures, class state dependencies, database coupling, UI coupling, and estimate testing effort
 - **Unit Test Coverage** (PART 1): Search for test files, identify gaps
-- **E2E Test Coverage** (PART 2): Use FUNCTIONAL AREA from coverage map, keyword-first search across ALL test directories
+- **E2E Test Coverage** (PART 2): Identify affected functional areas from changed file paths and component names, then look up each area in the coverage map Quick Reference Table to determine which frameworks to check — regardless of branch prefix. Use keyword-first search across ALL test directories
 
 **C. Regression Impact Analyzer Agent**
 
 Identify downstream consumers, integration points, and suggest regression scenarios.
+
+**Sub-agent failure handling:** If any sub-agent returns incomplete or no results:
+1. **Do NOT silently skip** — note the gap in the report (e.g., "E2E coverage analysis incomplete — Selenium repo unreachable")
+2. **Proceed with available data** — generate the report with remaining sub-agent results
+3. **Mark affected sections** with "⚠️ Incomplete — [reason]" so the reader knows
 
 ### 5. Generate Report(s) Based on Format Selection
 
@@ -244,7 +229,7 @@ Identify downstream consumers, integration points, and suggest regression scenar
 
 1. **Read template:** `prompts/code-review-qa/code-review-template.md`
 2. **Include ALL findings** (no filtering)
-3. **Generate all 11 sections + Developer Feedback** per template structure
+3. **Generate all sections (1-10 + 5.5 Security Check when triggered)** per template structure
 4. **Validate word count** (1300 max - HARD FAIL if exceeded)
 5. **Save to:** `reports/code-review/<BRANCH-ID>-code-review.md`
 
@@ -279,31 +264,31 @@ Identify downstream consumers, integration points, and suggest regression scenar
 
 ### 4.3 Test Data Requirements
 
-## 5. Bugfix Pattern Analysis
-[Use correct pattern table for branch prefix]
-
-## 6. Regression Testing Impact
+## 5. Regression Testing Impact
 [Table from Regression Impact Analyzer]
 
-## 7. Issues Found
+## 5.5 Security Consistency Check (when triggered)
+[Client-server symmetry, dependency impact, security documentation]
+
+## 6. Issues Found
 - Critical: [must fix]
 - Warning: [should fix]
 - Suggestion: [nice to have]
 
-## 8. Questions for Author
+## 7. Questions for Author
 
-## 9. Recommendation
+## 8. Recommendation
 - [ ] Approve - Ready to merge
 - [ ] Request Changes - Issues must be addressed
 - [ ] Comment - Questions need answers
 
-## 10. Critical Test Scenarios
+## 9. Critical Test Scenarios
 [3-5 manual test checks for QA]
 
 For comprehensive test planning, run:
-@hb-qa-acceptance-tests <BRANCH-ID>
+@hb-acceptance-tests <BRANCH-ID>
 
-## 11. Developer Feedback
+## 10. Developer Feedback
 
 **Verdicts:**
 - Valid - Finding is accurate and actionable
@@ -326,7 +311,7 @@ Present findings summary, risk level, issue counts, and link(s) to generated rep
 
 ### 8. Interactive Developer Feedback
 
-**This step is ALWAYS executed after presenting the summary. It is part of the standard code review flow.**
+**This step is executed by default after presenting the summary, unless `--no-feedback` is passed (see Section 8.5).**
 
 After presenting the summary (Step 7), start the interactive feedback loop.
 
@@ -334,13 +319,15 @@ After presenting the summary (Step 7), start the interactive feedback loop.
 
 Extract all findings that have warning or failure status from:
 - **Section 3.2** (Hotfix Pattern Prevention table)
-- **Section 7** (Issues Found -- all severities: Critical, Warning, Suggestion)
+- **Section 6** (Issues Found -- all severities: Critical, Warning, Suggestion)
 
 Build a numbered list of findings.
 
 #### 8.2 Present Findings in Batches
 
 Use `AskUserQuestion` to present findings in batches of up to 4 at a time.
+
+**Fallback if `AskUserQuestion` is unavailable:** Present all findings as a numbered list in chat and ask the developer to reply with verdict numbers (1=Valid, 2=False Positive, 3=Won't Fix, 4=More Info).
 
 **For each finding, create one question with 4 options:**
 - **"Valid"** -> "This finding is accurate and I will address it"
@@ -382,7 +369,7 @@ If the file doesn't exist yet, create it with the header:
 ---
 ```
 
-Then append each `## Finding N: ...` section.
+Then append each `## Finding N: ...` section. After all Finding sections, append the `## Summary` table (per the template) aggregating all findings analyzed in this session.
 
 **Step C: Present Summary and Ask Final Verdict**
 
@@ -395,8 +382,14 @@ After generating the deep analysis, present a brief summary in chat with probabi
 
 After all findings have been reviewed:
 
-1. **Update Section 11** of the code review report with developer verdicts
+1. **Update Section 10** of the code review report with developer verdicts
 2. **Save feedback JSON** to `reports/feedback/<TICKET>-feedback.json`:
+
+**Severity derivation rules:**
+- Section 6 findings: use the finding's severity (Critical → `"critical"`, Warning → `"warning"`, Suggestion → `"suggestion"`)
+- Section 3.2 findings: `fail` status → `"warning"`, `warn` status → `"suggestion"`. Only include findings with `fail` or `warn` status — `pass` findings are excluded from feedback.
+
+**deep_analysis_requested:** Set to `true` for any finding where the developer initially selected "Provide More Information" (regardless of final verdict).
 
 ```json
 {
@@ -413,9 +406,9 @@ After all findings have been reviewed:
       "section": "3.2",
       "finding": "...",
       "pattern_category": "...",
-      "severity": null,
+      "severity": "warning",
       "verdict": "valid",
-      "deep_analysis_requested": false,
+      "deep_analysis_requested": true,
       "comment": ""
     }
   ],
@@ -441,7 +434,7 @@ Results:
 - Won't Fix: X findings
 - Deep Analysis Provided: X findings
 
-Report updated: reports/code-review/<TICKET>-code-review.md (Section 11)
+Report updated: reports/code-review/<TICKET>-code-review.md (Section 10)
 Detailed analysis: reports/code-review/<TICKET>-findings-detailed.md
 Feedback saved: reports/feedback/<TICKET>-feedback.json
 ```
@@ -455,20 +448,20 @@ Interactive feedback is the **default**. To skip it, the user must explicitly sa
 | `HM-14200` | Comprehensive report + interactive feedback (default) |
 | `HM-14200 brief` | Brief report + interactive feedback |
 | `HM-14200 both` | Both reports + interactive feedback |
-| `HM-14200 --no-feedback` | Comprehensive report, static Section 11 (no interaction) |
+| `HM-14200 --no-feedback` | Comprehensive report, static Section 10 (no interaction) |
 
 ---
 
 ## Predictive Bug Detection
 
-Proactive scan for patterns that historically cause production hotfixes. For each changed file, check:
+Proactive scan for patterns that historically cause production hotfixes. Read `context/historical-bugfix-patterns.md` for the repo-specific pattern table, then for each changed file check every pattern in the table. Common checks across repos:
 
-1. **Edge Cases (28%)**: Are empty collections handled? Boundary values tested? What happens with zero patients or expired prescriptions?
-2. **Authorization (22%)**: Does every endpoint/page check user permissions? Can a nurse access doctor-only actions?
-3. **NULL Handling (18%)**: Are nullable fields checked before access? What if insurance or allergy data is missing?
-4. **Logic Errors (16%)**: Are all conditions correct? Copy-paste mistakes? Are drug interaction checks always executed?
-5. **Validation (10%)**: Are inputs validated at system boundaries? Dosage formats, date ranges, license numbers?
-6. **Completeness (6%)**: Are there TODOs or stub implementations that could reach production?
+1. **Edge Cases**: Are empty collections handled? Boundary values tested?
+2. **Authorization/Permission**: Does every endpoint/page check user permissions?
+3. **NULL Handling**: Are nullable fields checked before access?
+4. **Logic/Condition Errors**: Are all conditions correct? Copy-paste mistakes?
+5. **Data Validation**: Are inputs validated at system boundaries?
+6. **Completeness**: Are there TODOs or stub implementations that could reach production?
 
 Flag each finding with severity (Critical / Warning / Suggestion) and file:line reference.
 
@@ -483,7 +476,7 @@ Flag each finding with severity (Critical / Warning / Suggestion) and file:line 
 - Focus on issues that matter
 - Always include file:line references where possible
 - **Critical test checklist**: Keep to 3-5 scenarios maximum (high-level only)
-- **Never auto-generate acceptance tests** (that is a separate agent: `@hb-qa-acceptance-tests`)
+- **Never auto-generate acceptance tests** (that is a separate agent: `@hb-acceptance-tests`)
 - **Reference the acceptance tests agent** in Section 10 for detailed test planning
 - **Branch commit filtering:** Only analyze commits specific to the ticket ID
 - **No checkout:** Use `git fetch` + remote tracking branches for all analysis
@@ -523,31 +516,33 @@ Before writing code review report, verify:
   - [ ] Justification sentence
 - [ ] **Section 3: Code Quality Review**
   - [ ] 3.1 Standard Checks table (conventions, logic, error handling, security, performance)
-  - [ ] 3.2 Bugfix Pattern Prevention table (ALL 6 patterns with status - use correct table for branch type)
+  - [ ] 3.2 Bugfix Pattern Prevention table (use correct table for repository — see routing table)
 - [ ] **Section 4: Test Coverage Analysis**
   - [ ] 4.1 Unit Test Coverage table
-  - [ ] 4.2 E2E Automation Impact table (ALL test frameworks)
+  - [ ] 4.2 E2E Automation Impact table (ALL test frameworks: Selenium, Playwright, Mobile)
   - [ ] 4.3 Test Data Requirements table
-- [ ] **Section 5: Bugfix Pattern Analysis**
-  - [ ] Use Web/API patterns for HM-* branches (6 patterns)
-  - [ ] Use Mobile patterns for HMM-* branches (6 different patterns)
-- [ ] **Section 6: Regression Testing Impact** - Table with areas and suggested tests
-- [ ] **Section 7: Issues Found**
+- [ ] **Section 5: Regression Testing Impact** - Table with areas and suggested tests
+- [ ] **Section 5.5: Security Consistency Check** (if triggered by security code changes; otherwise "N/A")
+- [ ] **False Positive Prevention** applied per `context/code-review-false-positive-prevention.md` (Rules 1-6)
+  - [ ] All findings in Sections 3.2 and 6 are tool-verified (Rule 5)
+  - [ ] Write/read pairs checked for edge case findings (Rule 2)
+  - [ ] Change direction compared for style findings (Rule 6)
+- [ ] **Section 6: Issues Found**
   - [ ] Critical issues (or "None")
   - [ ] Warnings (or "None")
   - [ ] Suggestions (or "None")
-- [ ] **Section 8: Questions for Author** (or "None")
-- [ ] **Section 9: Recommendation** - Approve/Request Changes/Comment checkbox
-- [ ] **Section 10: Critical Test Scenarios** - Quick checklist (3-5 scenarios max)
-- [ ] **Section 11: Developer Feedback**
-  - [ ] Feedback table pre-populated with ALL findings from Sections 3.2 and 7
+- [ ] **Section 7: Questions for Author** (or "None")
+- [ ] **Section 8: Recommendation** - Approve/Request Changes/Comment checkbox
+- [ ] **Section 9: Critical Test Scenarios** - Quick checklist (3-5 scenarios max)
+- [ ] **Section 10: Developer Feedback**
+  - [ ] Feedback table pre-populated with ALL findings from Sections 3.2 and 6
   - [ ] Each finding has its own row with Section, Finding columns filled
   - [ ] **Default (interactive):** After report, present findings to developer via AskUserQuestion -> fill Verdict from responses (Step 8)
   - [ ] **--no-feedback mode:** Verdict and Comment columns left EMPTY for developers to fill manually
   - [ ] Verdicts legend present (Valid / False Positive / Won't Fix)
 - [ ] **Footer** - Generated date, branch, files count
 
-Maximum: 1300 words (Section 11: Developer Feedback is excluded from word count)
+Maximum: 1300 words (Section 10: Developer Feedback is excluded from word count)
 DO NOT SUBMIT if any section is missing.
 DO NOT rename or skip sections.
 ```

@@ -27,7 +27,7 @@ Automate the end-to-end analysis from requirements gathering through QA test pla
 |  - Analyze requirements document                                 |
 |  - Identify gaps, edge cases, integration impacts                |
 |  - Score completeness (0-10 scale)                               |
-|  - OUTPUT: requirements-analysis-[TICKET].md                     |
+|  - OUTPUT: [TICKET-ID]-requirements-analysis.md                  |
 |         |                                                         |
 |         v                                                         |
 |  DECISION POINT: Completeness Score >= 7/10?                     |
@@ -47,7 +47,7 @@ Automate the end-to-end analysis from requirements gathering through QA test pla
 |  |  - Mobile tests (WebdriverIO)                                 |
 |  - Identify tests to UPDATE/DELETE/ADD                           |
 |  - Estimate QA effort (detailed)                                 |
-|  - OUTPUT: qa-test-plan-[TICKET].md                              |
+|  - OUTPUT: [TICKET-ID]-qa-test-plan.md                           |
 |         |                                                         |
 |         v                                                         |
 |  PHASE 3: Dev Estimation Generation                              |
@@ -56,7 +56,7 @@ Automate the end-to-end analysis from requirements gathering through QA test pla
 |  - Identify unit test requirements                               |
 |  - Estimate development effort (detailed)                        |
 |  - Calculate risk buffers                                        |
-|  - OUTPUT: dev-estimation-[TICKET].md                            |
+|  - OUTPUT: [TICKET-ID]-dev-estimation.md                         |
 |         |                                                         |
 |         v                                                         |
 |  COMPLETE: All 3 documents generated                             |
@@ -101,15 +101,9 @@ Automate the end-to-end analysis from requirements gathering through QA test pla
 
 **Critical: Score Requirements Completeness**
 
-| Dimension | Score Guidance |
-|-----------|----------------|
-| **Business Rules Defined** (0-2) | All business logic clear? Major decisions defined? |
-| **Edge Cases Addressed** (0-2) | Null handling, boundaries, concurrency covered? |
-| **Integration Impacts Clear** (0-2) | All internal/external integrations identified? |
-| **Error Handling Defined** (0-2) | Validation, failures, rollback defined? |
-| **Multi-Repo Scope Clear** (0-2) | Impact on all repos analyzed? |
-
-**Calculate Total:** Sum all dimensions = **Score/10**
+Use the **7-dimension weighted scoring model**. Canonical definition: `requirements-analysis-template.md`, Section 3.
+- Completeness (20%), Clarity (15%), Testability (15%), Feasibility (15%), Edge Cases (10%), Integration Impact (10%), Domain Compliance (15%)
+- Each dimension scored 0-10, weighted total = **Score/10**
 
 **Output File:** `reports/requirements-analysis/[TICKET-ID]-requirements-analysis.md`
 
@@ -121,12 +115,12 @@ Automate the end-to-end analysis from requirements gathering through QA test pla
 
 ```
 IF completeness_score >= 7:
+    OUTPUT to user: "Score: [X]/10 — threshold met. Generating QA Test Plan and DEV Estimation."
     PROCEED to Step 3 (QA Test Plan)
     PROCEED to Step 4 (Dev Estimation)
 
 ELSE:
-    STOP workflow
-    Present to user:
+    OUTPUT to user:
        - "Requirements completeness: [X]/10 ([XX]%)"
        - "Cannot generate test plan and dev estimation yet"
        - "Critical questions that must be answered:"
@@ -134,10 +128,8 @@ ELSE:
          2. [Question 2]
          3. [Question 3]
        - "Please clarify with Product Owner, then re-run analysis"
-
-    Do NOT generate QA Test Plan
-    Do NOT generate Dev Estimation
-
+    DO NOT generate QA Test Plan
+    DO NOT generate Dev Estimation
     EXIT workflow
 ```
 
@@ -154,6 +146,7 @@ ELSE:
 - Requirements analysis document exists
 
 **Use template:** `../qa-test-plan/qa-test-plan-template.md`
+If template file cannot be read, stop and notify user: "Template not found at [path]. Verify path and re-run."
 
 **Actions:**
 
@@ -176,9 +169,8 @@ This file defines which functional areas are covered by each E2E framework. Use 
 *Use for: Prescriptions, Patient Records, Scheduling, Billing, Lab Results, Staff*
 ```bash
 # Search strategy
-grep_search: "[feature keywords]" in "HealthBridge-E2E-Tests/tests/**/*.spec.ts"
-file_search: "**/*[feature]*.spec.ts"
-read_file: [relevant test files]
+cd HealthBridge-E2E-Tests && git fetch origin
+git grep -n "[feature keywords]" origin/main -- "*.spec.ts"
 
 # Identify:
 - Tests to UPDATE (assertions, selectors, logic)
@@ -191,9 +183,8 @@ read_file: [relevant test files]
 ```bash
 # Check the coverage map to see if feature is in Mobile scope
 # If feature in mobile scope per coverage map:
-grep_search: "[feature keywords]" in "HealthBridge-Mobile-Tests/test/**/*.js"
-file_search: "**/*[feature]*.js"
-read_file: [relevant test files]
+cd HealthBridge-Mobile-Tests && git fetch origin
+git grep -n "[feature keywords]" origin/main -- "*.js"
 
 # Identify:
 - Tests to UPDATE
@@ -238,6 +229,7 @@ Use the coverage status legend from the coverage map:
 - QA test plan document exists (or generated in parallel)
 
 **Use template:** `../dev-estimation/dev-estimation-template.md`
+If template file cannot be read, stop and notify user: "Template not found at [path]. Verify path and re-run."
 
 **Actions:**
 
@@ -252,9 +244,8 @@ Use the coverage status legend from the coverage map:
 **HealthBridge-Web (C#/ASP.NET Core):**
 ```bash
 # Search for relevant files
-grep_search: "[feature keywords]" in "HealthBridge-Web/**/*.{cs,cshtml,razor}"
-file_search: "**/*[FeatureName]*"
-read_file: [relevant files to understand structure]
+cd HealthBridge-Web && git fetch origin
+git grep -n "[feature keywords]" origin/main -- "*.cs" "*.cshtml" "*.razor"
 
 # Identify:
 - Backend files to modify (.cs services, controllers)
@@ -266,7 +257,8 @@ read_file: [relevant files to understand structure]
 
 **HealthBridge-Api (C#):**
 ```bash
-grep_search: "[feature keywords]" in "HealthBridge-Api/**/*.cs"
+cd HealthBridge-Api && git fetch origin
+git grep -n "[feature keywords]" origin/main -- "*.cs"
 # Identify:
 - API controllers to modify
 - DTOs to add/modify
@@ -275,9 +267,21 @@ grep_search: "[feature keywords]" in "HealthBridge-Api/**/*.cs"
 - Unit tests
 ```
 
+**HealthBridge-Portal (C# / .NET Core + React):**
+```bash
+cd HealthBridge-Portal && git fetch origin
+git grep -n "[feature keywords]" origin/main -- "*.cs" "*.tsx" "*.ts"
+# Identify:
+- React components to add/modify
+- Backend controllers/services to modify
+- Permission guards to add/update
+- Unit tests (backend + frontend)
+```
+
 **HealthBridge-Mobile (Flutter):**
 ```bash
-grep_search: "[feature keywords]" in "HealthBridge-Mobile/lib/**/*.dart"
+cd HealthBridge-Mobile && git fetch origin
+git grep -n "[feature keywords]" origin/main -- "*.dart"
 # Identify:
 - Widgets/screens to modify
 - State management changes
@@ -342,7 +346,7 @@ reports/requirements-analysis/[TICKET-ID]-dev-estimation.md
 **Generated Documents:**
 1. **Requirements Analysis** - [X] words
    - [Y] gaps identified ([Z] critical)
-   - Score breakdown: Business [X]/2, Edge Cases [X]/2, Integration [X]/2, Errors [X]/2, Multi-Repo [X]/2
+   - Score breakdown: 7-dimension weighted model (see report for details)
 
 2. **QA Test Plan** - [X] words
    - [Y] manual test scenarios
@@ -383,12 +387,14 @@ reports/requirements-analysis/[TICKET-ID]-requirements-analysis.md
 
 **Completeness Score:** [X]/10 ([XX]%) - Not ready for planning
 
-**Score Breakdown:**
-- Business Rules: [X]/2 - [Assessment]
-- Edge Cases: [X]/2 - [Assessment]
-- Integration Impacts: [X]/2 - [Assessment]
-- Error Handling: [X]/2 - [Assessment]
-- Multi-Repo Scope: [X]/2 - [Assessment]
+**Score Breakdown (7-dimension weighted model):**
+- Completeness (20%): [X]/10 - [Assessment]
+- Clarity (15%): [X]/10 - [Assessment]
+- Testability (15%): [X]/10 - [Assessment]
+- Feasibility (15%): [X]/10 - [Assessment]
+- Edge Cases (10%): [X]/10 - [Assessment]
+- Integration Impact (10%): [X]/10 - [Assessment]
+- Domain Compliance (15%): [X]/10 - [Assessment]
 
 **Why score is too low:**
 [Explanation of what's missing]
@@ -407,7 +413,7 @@ reports/requirements-analysis/[TICKET-ID]-requirements-analysis.md
 1. Schedule meeting with Product Owner
 2. Get answers to critical questions
 3. Update requirements document
-4. Re-run requirements analysis
+4. Re-run requirements analysis with updated requirements as new input (previous files are not overwritten)
 5. Once score >= 7/10, we'll auto-generate test plan and dev estimation
 
 **Generated Document:**
@@ -432,7 +438,7 @@ reports/requirements-analysis/[TICKET-ID]-requirements-analysis.md
 
 **MANDATORY - These limits are non-negotiable:**
 
-- Requirements Analysis: **1000 words max**
+- Requirements Analysis: **1500 words max**
 - QA Test Plan: **1000 words max**
 - Dev Estimation: **800 words max**
 
@@ -445,11 +451,10 @@ reports/requirements-analysis/[TICKET-ID]-requirements-analysis.md
 
 ### Search Strategy
 
-**Always use these tools:**
-- `grep_search` - Find relevant code across repositories
-- `file_search` - Locate specific files by pattern
-- `read_file` - Understand implementation details
-- `semantic_search` - When exact search terms unclear
+**Always use your IDE's tools (or git commands) to:**
+- Search file contents: `git grep -n "<pattern>" origin/main -- "*.cs"`
+- Locate files: `git ls-tree -r --name-only origin/main | grep "<pattern>"`
+- Read files from remote: `git show origin/main:<file-path>`
 
 **Don't make assumptions** - Search first, then estimate
 
@@ -461,7 +466,7 @@ Before delivering final output, verify:
 
 **Requirements Analysis:**
 - [ ] Completeness score calculated with justification
-- [ ] All 5 dimensions scored (Business, Edge Cases, Integration, Errors, Multi-Repo)
+- [ ] All 7 dimensions scored per weighted model (Completeness, Clarity, Testability, Feasibility, Edge Cases, Integration, Domain Compliance)
 - [ ] Decision documented: Proceed (>=7) or Stop (<7)
 - [ ] If <7: Specific critical questions listed
 
@@ -502,4 +507,12 @@ Before delivering final output, verify:
 
 ---
 
-**Orchestrator Version:** 1.1
+**Orchestrator Version:** 1.2
+
+## Version History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 1.2 | 2026-03-05 | Standardized to 7-dimension weighted scoring model, fixed output file naming, raised word limit to 1500, added re-run protocol |
+| 1.1 | ~2026-02 | Previous version |
+| 1.0 | ~2026-01 | Initial release |

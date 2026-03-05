@@ -18,8 +18,9 @@ You are analyzing an error or exception to generate a ticket-ready bug report. T
 ```
 1. Identify error type (NullRef, IndexOut, Logic, etc.)
 2. Extract file path and line number (if available)
-3. Determine repository (HealthBridge-Web, HealthBridge-Api, HealthBridge-Mobile)
-4. Check branch/version context
+3. Determine repository (HealthBridge-Web, HealthBridge-Portal, HealthBridge-Api, HealthBridge-Mobile, HealthBridge-Claims-Processing, HealthBridge-Prescriptions-Api)
+4. Select correct pattern table based on repository (see Step 2 below)
+5. Check branch/version context
 ```
 
 ---
@@ -37,18 +38,15 @@ Read: <file-path> lines <line-20> to <line+20>
 ```
 
 **If Error Message Only:**
-```
-# Use semantic search
-semantic_search: "<error message text>"
-
-# Or grep for error message
-grep -rn "<error message>" --include="*.cs" --include="*.ts" --include="*.dart"
+```bash
+# Search for error message in codebase (use remote refs)
+git grep -n "<error message>" origin/main -- "*.cs" "*.ts" "*.dart"
 ```
 
 **If Symptom Description Only:**
-```
-# Search for related code
-semantic_search: "<feature name> <symptom keywords>"
+```bash
+# Search for related code by feature keywords
+git grep -n "<feature name>" origin/main -- "*.cs"
 
 # Example: "prescription creation validation"
 ```
@@ -74,73 +72,16 @@ semantic_search: "<feature name> <symptom keywords>"
 
 #### Step 2: Match Hotfix Pattern
 
-Use historical RCA patterns:
+**Read `context/historical-bugfix-patterns.md`** for all repository-specific pattern tables. Use the routing table to select the correct patterns for the identified repository.
 
-**NULL Handling (18%):**
-```
-Indicators:
-- NullReferenceException
-- "Object reference not set"
-- Accessing properties without null check
-- Optional parameters not validated
+Match the bug's symptoms against patterns from the correct table. Common indicators across all repos:
+- **NULL Handling:** NullReferenceException, "Object reference not set", accessing properties without null check
+- **Edge Cases:** IndexOutOfRangeException, empty collection errors, date boundary issues, min/max value problems
+- **Authorization:** Unauthorized access, role-based permission bypass, missing access control checks
+- **Logic/Condition:** Incorrect operators (&& vs ||), wrong variable used, copy-paste errors
+- **Data Validation:** Invalid data formats, missing format validation, type conversion failures
 
-Detection:
-if (obj.Property)  // No null check
-if (obj != null && obj.Property)  // Correct
-```
-
-**Edge Cases (28%):**
-```
-Indicators:
-- IndexOutOfRangeException
-- Empty collection errors
-- Date boundary issues
-- Min/Max value problems
-
-Detection:
-array[i]  // No bounds check
-foreach (var item in collection)  // Empty collection not handled
-```
-
-**Authorization Gaps (22%):**
-```
-Indicators:
-- Unauthorized access to patient records
-- Role-based permission bypass
-- Department-level access violations
-- Missing access control checks
-
-Detection:
-GetPatientRecord(patientId)  // No department check
-if (user.Role == "Doctor")  // Missing nurse/admin roles
-```
-
-**Logic/Condition Errors (16%):**
-```
-Indicators:
-- Logic errors
-- Incorrect operators (&& vs ||)
-- Wrong variable used
-- Copy-paste errors
-
-Detection:
-if (x > 0 && y < 0)  // Should be ||?
-if (patient.IsActive && patient.IsDeceased)  // Logic error
-```
-
-**Data Validation (10%):**
-```
-Indicators:
-- Invalid medical data formats
-- Missing format validation
-- Type conversion failures
-
-Detection:
-int.Parse(dosageInput)  // No validation
-DateTime.Parse(prescriptionDate)  // No format check
-```
-
-**Missing Implementation (6%):**
+**Missing Implementation** (see `context/historical-bugfix-patterns.md` for repo-specific %):
 ```
 Indicators:
 - NotImplementedException
@@ -156,11 +97,11 @@ throw new NotImplementedException();  // Not implemented
 #### Step 3: Git History Check
 
 ```bash
-# When was this code added?
-git log --oneline -n 10 -- "<file-path>"
+# When was this code added? (use remote refs — never local)
+git log origin/main --oneline -n 10 -- "<file-path>"
 
 # Who last changed this line?
-git blame "<file-path>" -L <line>,<line>
+git blame origin/main -- "<file-path>" -L <line>,<line>
 
 # Search for similar past errors/fixes
 git log --all --grep="<error-type>" --oneline
@@ -177,24 +118,25 @@ git log --all --grep="<error-type>" --oneline
 **CRITICAL:** Search for the same bug pattern elsewhere in the codebase.
 
 ```bash
-# Search for similar code structure
-grep -rn "problematic_pattern" --include="*.cs" --include="*.ts" --include="*.dart"
+# Search for similar code structure on remote (never local grep)
+git grep -n "problematic_pattern" origin/main -- "*.cs" "*.ts" "*.dart"
 
 # Find similar function calls
-grep -rn "SuspiciousMethod(" --include="*"
+git grep -n "SuspiciousMethod(" origin/main
 
 # Search for copy-paste candidates (similar file names)
-find . -name "*Service*.cs" -o -name "*Service*.ts"
+git ls-tree -r --name-only origin/main | grep -E "(Service)\.(cs|ts)$"
 ```
 
-**Use semantic_search for conceptual similarity:**
-```
-Search for: code that does [same operation without safety check]
+**Search for conceptual similarity:**
+```bash
+# Find similar code patterns on remote
+git grep -n "<problematic_pattern>" origin/main -- "*.cs"
 ```
 
-**Use list_code_usages to find all callers:**
-```
-Find usages of: [problematic method/class]
+**Find all callers of the problematic method:**
+```bash
+git grep -n "<method_name>" origin/main -- "*.cs"
 ```
 
 **Questions to Answer:**
@@ -294,11 +236,11 @@ Ask yourself:
 #### Check Unit Tests
 
 ```bash
-# Find test files for the affected class
-find . -name "*Test.cs" -o -name "*Tests.cs" -o -name "*_test.dart"
+# Find test files for the affected class (use remote refs)
+git ls-tree -r --name-only origin/main | grep -E "(Test|Tests)\.(cs|dart)$"
 
 # Search for test methods
-grep -r "Test<FunctionName>" *Test*
+git grep -n "Test<FunctionName>" origin/main -- "*Test*"
 ```
 
 **Assessment:**
@@ -316,8 +258,9 @@ Use `context/e2e-test-coverage-map.md`:
 3. Search relevant E2E repo for tests
 ```
 
-**Frameworks:**
-- **Playwright** - Patient Records, Prescriptions, Scheduling, Billing
+**Frameworks (consult `context/e2e-test-coverage-map.md` for full mapping):**
+- **Selenium** - Patient Records, Prescriptions, Insurance Claims, Billing
+- **Playwright** - Appointments, Scheduling, Lab Results, Staff Scheduling
 - **Mobile** - Appointments, Lab Results, Medication Tracking, Mobile UI
 
 #### Automation Priority
@@ -439,7 +382,7 @@ Use the template from `bug-report-template.md`.
 
 #### Word Count Management
 
-**Target: 600 words**
+**Target: 900 words**
 
 If over limit:
 1. Shorten code snippets (5 lines max)
@@ -467,7 +410,7 @@ If over limit:
 - [ ] Is it user input?
 - [ ] Should it ever be null?
 
-**Pattern:** NULL Handling (18%)
+**Pattern:** NULL Handling (see `context/historical-bugfix-patterns.md` for repo-specific %)
 
 **Typical Fix:**
 ```csharp
@@ -486,7 +429,7 @@ if (obj == null)
 - [ ] Is boundary check missing?
 - [ ] Off-by-one error?
 
-**Pattern:** Edge Cases (28%)
+**Pattern:** Edge Cases (see `context/historical-bugfix-patterns.md` for repo-specific %)
 
 **Typical Fix:**
 ```csharp
@@ -504,7 +447,7 @@ if (collection.Count > 0 && index < collection.Count)
 - [ ] Wrong variable used?
 - [ ] Copy-paste error?
 
-**Pattern:** Logic/Condition Errors (16%)
+**Pattern:** Logic/Condition Errors (see `context/historical-bugfix-patterns.md` for repo-specific %)
 
 **Typical Fix:**
 ```csharp
@@ -523,7 +466,7 @@ if (x > 0 || y < 0)  // Correct logic
 - [ ] Is department-level access enforced?
 - [ ] Is data-level authorization checked?
 
-**Pattern:** Authorization Gaps (22%)
+**Pattern:** Authorization Gaps (see `context/historical-bugfix-patterns.md` for repo-specific %)
 
 **Typical Fix:**
 ```csharp
@@ -626,13 +569,13 @@ Auto-generate labels based on:
 - [ ] No typos
 - [ ] Proper formatting
 - [ ] Ticket-ready language
-- [ ] Word count <= 600
+- [ ] Word count <= 900
 
 ---
 
 ## Time Budget
 
-Total time: 18-24 minutes
+Total time: 25-35 minutes
 
 - **Phase 1** (Classification): 2-3 min
 - **Phase 2** (Location): 3-5 min

@@ -76,16 +76,20 @@ def detect_component(file_path):
 
 ### Hotfix Pattern Labels
 
-Based on root cause analysis of production hotfixes:
+Based on root cause analysis of production hotfixes. See `context/historical-bugfix-patterns.md` for repo-specific pattern tables with percentages.
 
 | Pattern | Label | When to Use |
 |---------|-------|-------------|
-| NULL Handling (18%) | `null-handling` | NullReferenceException, missing null checks |
-| Edge Cases (28%) | `edge-case` | Boundary conditions, empty collections, date ranges |
-| Authorization Gaps (22%) | `authorization-gap` | Missing permission checks, role mismatches |
-| Logic/Condition Errors (16%) | `logic-error` | Logic errors, incorrect conditions |
-| Data Validation (10%) | `data-validation` | Invalid format, missing required fields |
-| Missing Implementation (6%) | `missing-implementation` | NotImplementedException, TODOs |
+| NULL Handling | `null-handling` | NullReferenceException, missing null checks |
+| Edge Cases | `edge-case` | Boundary conditions, empty collections, date ranges |
+| Authorization Gaps | `authorization-gap` | Missing permission checks, role mismatches |
+| Logic/Condition Errors | `logic-error` | Logic errors, incorrect conditions |
+| Data Validation | `data-validation` | Invalid format, missing required fields |
+| Missing Implementation | `missing-implementation` | NotImplementedException, TODOs |
+| Configuration/DI Errors | `config-di-error` | Missing DI registrations, wrong service lifetimes |
+| Database/EF Core Issues | `database-efcore` | Wrong column types, missing Include(), FK misconfig |
+| Concurrency/Race Conditions | `concurrency` | DbUpdateConcurrencyException, operation ordering |
+| State Management | `state-management` | Riverpod lifecycle, async races (Mobile) |
 
 ### Area/Feature Labels
 

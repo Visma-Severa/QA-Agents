@@ -1,8 +1,8 @@
 # Bugfix Root Cause Analysis Agent
 
-**Agent:** `@hb-qa-bugfix-rca`
+**Agent:** `@hb-bugfix-rca`
 **Purpose:** Root cause analysis for production bugfixes. Supports both hotfix (known release) and investigation (unknown origin) modes. Generates TWO reports: RCA Analysis + E2E Test Recommendations.
-**Output:** `reports/bugfix-rca/<TICKET-ID>_Root_Cause_Analysis.md` and `reports/bugfix-rca/<TICKET-ID>_E2E_Test_Recommendations.md`
+**Output:** `reports/bugfix-rca/<TICKET-ID>-rca.md` and `reports/bugfix-rca/<TICKET-ID>-e2e-test-recommendations.md`
 
 ---
 
@@ -11,40 +11,25 @@
 | Type | Path | Purpose |
 |------|------|---------|
 | Context | `context/e2e-test-coverage-map.md` | Which E2E frameworks cover which functional areas |
+| Context | `context/historical-bugfix-patterns.md` | Repo-specific bugfix pattern tables for Section 2 pattern matching |
+| Context | `context/healthbridge-repository-dependencies.md` | Consumer/Provider dependency map — blast radius for root cause tracing |
 | Template | `prompts/bugfix-rca/bugfix-rca-template.md` | Exact report structure to follow |
 
 ---
 
 ## Analysis Modes (Auto-Detected)
 
-Mode is auto-detected -- the user does NOT need to specify it.
+Mode is **always auto-detected** from the user's input. The user does NOT need to specify it.
 
-| Input | Mode | What Happens |
-|-------|------|-------------|
+| Input Pattern | Detected Mode | What Happens |
+|---------------|---------------|-------------|
 | `HM-14200 Release-3/2026` | Hotfix Mode | Compares bugfix branch vs release branch |
-| `HM-14200` (only ticket) | Investigation Mode | Searches git history for the fix |
+| `HM-14200` (ticket ID only) | Investigation Mode | Searches git history for the fix |
+| `hotfix HM-14200 Release-3/2026` | Hotfix Mode | User explicitly said hotfix + provided release |
+| `hotfix HM-14200` (no release) | Investigation Mode | No release specified, fall back to investigation |
+| `investigate HM-14200` | Investigation Mode | User explicitly requested investigation |
 
----
-
-## Initial Setup
-
-When this command is invoked, respond with:
-
-```
-I'm ready to perform a Root Cause Analysis for a bugfix.
-
-Please provide:
-- **Ticket ID** (e.g., HM-14200)
-- **Mode** (optional):
-  - `hotfix` - Bug was introduced in a recent Release (specify which one)
-  - `investigate` - Bug origin unknown, need to search git history
-
-If you don't specify a mode, I'll determine it based on the ticket information.
-
-I'll analyze the bugfix, identify the root cause, assess preventability, and generate E2E test recommendations.
-```
-
-Then wait for the user's input.
+**No initial prompt.** Do NOT display a "ready" message or ask for confirmation. Begin analysis immediately when the user provides a ticket ID, per the execution protocol in CLAUDE.md.
 
 ---
 
@@ -70,14 +55,38 @@ Then wait for the user's input.
 
 ### Branch Prefix to Repository Mapping
 
-| Branch Prefix | Repository | Pattern Set |
-|---------------|------------|-------------|
-| `HM-*` | `HealthBridge-Web` | Web/API patterns |
-| `HM-*` | `HealthBridge-Api` | .NET Core patterns |
-| `HM-*` | `HealthBridge-Claims-Processing` | .NET Core patterns |
-| `HM-*` | `HealthBridge-Prescriptions-Api` | .NET Core patterns |
+| Branch Prefix | Candidate Repositories | Pattern Set |
+|---------------|----------------------|-------------|
+| `HM-*` | `HealthBridge-Web`, `HealthBridge-Api`, `HealthBridge-Claims-Processing`, `HealthBridge-Prescriptions-Api` | See disambiguation below |
 | `HMM-*` | `HealthBridge-Mobile` | Mobile/Flutter patterns |
 | `HBP-*` | `HealthBridge-Portal` | Portal patterns (C#/React/TypeScript) |
+
+### HM-* Multi-Repository Disambiguation (CRITICAL)
+
+When the ticket prefix is `HM-*`, the branch may exist in **any of 4 repositories**. The agent MUST search all of them.
+
+**Search procedure:**
+
+```bash
+# Search ALL HM-* candidate repos in this order
+for repo in HealthBridge-Web HealthBridge-Api HealthBridge-Claims-Processing HealthBridge-Prescriptions-Api; do
+  cd "$repo" && git fetch origin && git branch -r --list "*<TICKET_ID>*" && cd ..
+done
+```
+
+**Decision logic:**
+
+| Result | Action |
+|--------|--------|
+| Branch found in exactly 1 repo | Use that repo. Report: "Branch found in `<repo>`" |
+| Branch found in multiple repos | Analyze ALL repos where branch exists. Report: "Branch found in X repos: `<list>`. Analyzing all." |
+| Branch found in 0 repos | **STOP.** Report: "Branch `<TICKET_ID>` not found in any repository. Checked: HealthBridge-Web, HealthBridge-Api, HealthBridge-Claims-Processing, HealthBridge-Prescriptions-Api. Verify the ticket ID and that the branch has been pushed to origin." |
+
+**Mandatory reporting:** Every RCA report MUST state which repository was analyzed and how it was selected.
+
+### Pattern Set Selection
+
+After identifying the repository, select the correct bugfix pattern table from `context/historical-bugfix-patterns.md`. The routing table in that file maps each repository to its pattern set.
 
 ### E2E Test Automation Repositories
 
@@ -86,6 +95,46 @@ Then wait for the user's input.
 | `HealthBridge-Selenium-Tests` | `HealthBridge-Selenium-Tests/` | Python/Selenium | Prescriptions, Patient Records, Insurance, Billing |
 | `HealthBridge-E2E-Tests` | `HealthBridge-E2E-Tests/` | TypeScript/Playwright | Appointments, Scheduling, Lab Results |
 | `HealthBridge-Mobile-Tests` | `HealthBridge-Mobile-Tests/` | WebdriverIO | Mobile: Prescriptions, Appointments, Lab Results |
+
+---
+
+## Failure Handling
+
+At each critical step, the agent MUST handle failures explicitly rather than hallucinating results.
+
+### Branch Not Found
+
+If the branch does not exist in any candidate repository:
+- **STOP analysis.** Do not proceed with a guess.
+- Report which repos were checked and that the branch was not found.
+- Suggest: verify ticket ID, check if branch was pushed, check for typos.
+
+### Causative Commit Not Found
+
+If `git blame`, `git log -S`, and file history searches fail to identify the commit that introduced the bug:
+- Report: "Causative commit could not be identified through git history analysis."
+- In the RCA report, mark Section 3 (Timeline) "Bug Introduced" as "Unknown — not identifiable from git history."
+- Continue with the remaining analysis (the fix itself, pattern match, preventability, etc.) using the bugfix diff as the primary evidence.
+- In Recommendations, add: "Manual investigation needed to identify the original causative change."
+
+### Git Blame Inconclusive
+
+If `git blame` shows the line was last modified by a merge commit, bulk formatting change, or automated tool:
+- Follow the merge commit to its source PR: `git log --merges --ancestry-path <merge-hash>..origin/main`
+- If still inconclusive, use `git log -p -S '<code-pattern>' -- "<file>"` to trace the actual logic change.
+- If all approaches fail, follow the "Causative Commit Not Found" procedure above.
+
+### Release Branch Not Found (Hotfix Mode)
+
+If the specified release branch doesn't exist:
+- Report: "Release branch `Release-XX/YYYY` not found. Falling back to Investigation Mode."
+- Switch to Investigation Mode and continue analysis.
+
+### No Ticket-Specific Commits
+
+If commit filtering finds 0 commits matching the ticket ID on the branch:
+- Report: "No commits matching `<TICKET_ID>` found on branch. The branch may use different commit message conventions."
+- Fall back to analyzing ALL commits on the branch with a warning: "Analyzing all X commits — results may include unrelated changes."
 
 ---
 
@@ -100,26 +149,30 @@ cd "<repository-path>" && git fetch origin && git branch -r --list "*<TICKET_ID>
 git branch -r --list "*Release-<WEEK>/<YEAR>*"
 ```
 
+If release branch not found, see Failure Handling above.
+
 ### Step 2: Filter Commits by Ticket ID (CRITICAL)
 
 ```bash
-# Step 1: Count ALL commits on branch
-git rev-list --count origin/main..origin/bugfix/<TICKET_ID>
+# Step 1: Count ALL commits on branch (exclude merge commits)
+git rev-list --count --no-merges origin/main..origin/bugfix/<TICKET_ID>
 
-# Step 2: Get ticket-specific commits
-git log origin/main..origin/bugfix/<TICKET_ID> --oneline --grep="<TICKET_ID>"
+# Step 2: Get ticket-specific commits (exclude merge commits)
+git log --no-merges origin/main..origin/bugfix/<TICKET_ID> --oneline --grep="<TICKET_ID>"
 
 # Step 3: Count ticket-specific commits
-git rev-list --count origin/main..origin/bugfix/<TICKET_ID> --grep="<TICKET_ID>"
+git rev-list --count --no-merges origin/main..origin/bugfix/<TICKET_ID> --grep="<TICKET_ID>"
 ```
 
-**Report to user:** "Branch contains X total commits, analyzing Y commits specific to <TICKET_ID>"
+**Report to user:** "Branch contains X total commits (excluding merges), analyzing Y commits specific to <TICKET_ID>"
+
+If 0 ticket-specific commits found, see Failure Handling above.
 
 ### Step 3: Get Bugfix Changes
 
 Use the CORRECT approach based on Step 2:
 - If all commits match -> standard `git diff`
-- If branch has merges -> ticket-specific commits only
+- If branch has other tickets' commits -> ticket-specific commits only
 
 ### Step 4: Search Release for Causative PR
 
@@ -127,6 +180,8 @@ Use the CORRECT approach based on Step 2:
 git log origin/release/Release-<WEEK>/<YEAR> --oneline -- "<affected-file-path>"
 git log origin/release/Release-<WEEK>/<YEAR> -p -- "<affected-file-path>" | head -100
 ```
+
+If causative PR not found, see Failure Handling above.
 
 ### Step 5: Compare Before/After
 
@@ -149,7 +204,7 @@ cd "<repository-path>" && git fetch origin && git branch -r --list "*<TICKET_ID>
 git diff origin/main..origin/bugfix/<TICKET_ID> --stat
 ```
 
-**If branch contains merges from other tickets, filter first.**
+**If branch contains merges from other tickets, filter first (with `--no-merges`).**
 
 ### Step 2: Search Git History for Origin
 
@@ -159,6 +214,8 @@ git log --oneline --all -- "<file-path>" | head -30
 git blame origin/main -- "<file-path>"
 ```
 
+If blame is inconclusive, see Failure Handling above.
+
 ### Step 3: Identify Causative Commit
 
 ```bash
@@ -167,11 +224,18 @@ git log --oneline --merges --ancestry-path <commit-hash>..origin/main | head -5
 git branch -r --contains <commit-hash> --list "*Release*"
 ```
 
+If causative commit cannot be identified, see Failure Handling above.
+
 ### Step 4: Trace the Full History
 
+Use a dynamic 12-month lookback window:
+
 ```bash
-git log --oneline --since="2025-01-01" -- "<file-path>" | head -20
+# Calculate 12 months ago dynamically (cross-platform)
+git log --oneline --since="$(date -v-12m +%Y-%m-%d 2>/dev/null || date -d '12 months ago' +%Y-%m-%d)" -- "<file-path>" | head -20
 ```
+
+**Note:** `date -v-12m` is macOS syntax, `date -d '12 months ago'` is Linux syntax. The `||` fallback handles both platforms.
 
 ---
 
@@ -181,49 +245,24 @@ git log --oneline --since="2025-01-01" -- "<file-path>" | head -20
 
 **CRITICAL STEP:** After identifying the root cause, match it against the documented bugfix patterns and report the match status in the Executive Summary.
 
-**IMPORTANT**: Use the correct pattern table based on branch prefix:
-- **HM-*** -> Use Web/API patterns (HealthBridge-Web)
-- **HBP-*** -> Use Portal patterns (C#/React/TypeScript)
-- **HMM-*** -> Use Mobile/Flutter patterns
+**Read `context/historical-bugfix-patterns.md`** for the repository-to-pattern routing table and all 5 pattern tables. Use the correct table based on repository, not just branch prefix.
 
-#### Web / API Patterns (HM-* branches)
+### Combined Score Calculation
 
-| Pattern | % | Detection Focus |
-|---------|---|-----------------|
-| **Edge Cases** | 28% | Empty patient lists, boundary dates, zero-dose quantities |
-| **Authorization Gaps** | 22% | Doctor accessing patient outside department, missing permission checks |
-| **NULL Handling** | 18% | Missing allergy records, null insurance provider |
-| **Logic/Condition Errors** | 16% | Drug interaction checks skipped, overlapping appointments |
-| **Data Validation** | 10% | Invalid dosage formats, malformed ICD codes |
-| **Missing Implementation** | 6% | TODOs in discharge workflows, stubs in referral processing |
+**Formula:** The Combined Score equals the **primary pattern's percentage only**. Do not sum primary + secondary.
 
-**Detection Rate:** 64% of bugfixes are detectable through static code analysis.
+- **Primary Pattern:** The pattern with an EXACT MATCH. Report its historical percentage.
+- **Secondary Pattern:** Any pattern with a PARTIAL match. Note it separately.
+- **Combined Score:** = Primary pattern % (e.g., "XX% of historical hotfixes match this pattern")
 
-#### Portal Patterns (HBP-* branches) -- C# / React / TypeScript
+Example: If a bug is an EXACT match for Edge Cases (XX%) with a PARTIAL match for NULL Handling (YY%), report:
+- Primary Pattern: Edge Cases (XX%)
+- Secondary Pattern: NULL Handling
+- Combined Score: XX% — "XX% of historical hotfixes match this primary pattern. NULL Handling noted as secondary factor."
 
-| Pattern | % | Detection Focus |
-|---------|---|-----------------|
-| **Permission/Authorization** | 25% | API fetches without permission guards, missing `enabled` flags in React Query |
-| **NULL/Undefined Handling** | 20% | Missing optional chaining, nullable DB fields mapped to non-nullable |
-| **Cross-Year/Date Calculations** | 18% | `.Year` arithmetic without month handling, period copying across years |
-| **UI Event Handling & Refs** | 15% | Ref scope issues, blur/mousedown containment checks |
-| **Logic/Condition Errors** | 12% | `return` vs `continue` in loops, missing condition cases |
-| **Error Propagation** | 10% | Errors breaking pages instead of graceful degradation |
+_(Replace XX%/YY% with actual percentages from the repo-specific pattern table in `context/historical-bugfix-patterns.md`.)_
 
-**Detection Rate:** 70% of Portal bugfixes are detectable through code review.
-
-#### Mobile/Flutter Patterns (HMM-* branches)
-
-| Pattern | % | Detection Focus |
-|---------|---|-----------------|
-| **Calculation/Logic Errors** | 30% | Dosage math, date calculations, appointment projections |
-| **State Management Issues** | 25% | Riverpod lifecycle, async races, disposed widget access |
-| **Navigation/UI Lifecycle** | 20% | Modal handling, missing pop() calls, back button |
-| **Edge Cases** | 15% | Empty patient lists, optional data, offline boundaries |
-| **NULL/Optional Handling** | 5% | Async nulls, state access timing |
-| **Missing Implementation** | 5% | Incomplete features, partial offline support |
-
-**Detection Rate:** 80% of mobile bugfixes are detectable through automated testing.
+**Do NOT sum percentages.** The percentages represent independent category frequencies, not additive probabilities.
 
 ### 5 Whys Analysis
 
@@ -250,6 +289,28 @@ For each bugfix, apply the 5 Whys technique:
 
 Fetch latest from E2E repos before searching. Use keyword-first search strategy across all test directories.
 
+#### How to Parse the Coverage Map
+
+Read `context/e2e-test-coverage-map.md` and use it as follows:
+
+1. **Identify the functional area** affected by the bug (e.g., "Prescriptions", "Insurance Claims")
+2. **Look up the Quick Reference Table** — find the row matching that functional area
+3. **For each column** (E2E Tests Web/API, Mobile Tests):
+   - "Yes" = this framework covers this area. Search for existing tests using the **Search Keywords** from the Detailed section.
+   - "No" = this framework does NOT cover this area. Report as "N/A — Outside scope."
+4. **Use the Search Keywords** from the Detailed tables (e.g., "prescription, medication, dosage, refill") to search across ALL test directories.
+
+#### Coverage Status Definitions
+
+Used consistently across all agents and the coverage map:
+
+| Status | Definition |
+|--------|-----------|
+| **Full** | Tests exist covering the happy path AND at least one edge case or error scenario relevant to the bug |
+| **Partial** | Tests exist but only cover the happy path, or don't cover the specific scenario where the bug occurred |
+| **Gap** | Framework covers this functional area (per coverage map) but no tests exist for this specific feature/bug area |
+| **N/A** | Functional area is outside the scope of this test framework (per coverage map) |
+
 ---
 
 ## Output Documents
@@ -258,8 +319,8 @@ Generate **TWO reports**:
 
 ### Report 1: RCA Analysis Document
 
-**Location:** `reports/bugfix-rca/<TICKET_ID>_Root_Cause_Analysis.md`
-**Maximum:** 1000 words
+**Location:** `reports/bugfix-rca/<TICKET_ID>-rca.md`
+**Maximum:** 1500 words
 
 **Mandatory 7 sections:**
 
@@ -267,8 +328,9 @@ Generate **TWO reports**:
 # Root Cause Analysis: <TICKET_ID>
 
 ## 1. Executive Summary
+- **Repository:** [Which repo was analyzed and how it was selected]
 - **Bug Description:** [What went wrong]
-- **Causative PR/Commit:** [PR # or commit hash]
+- **Causative PR/Commit:** [PR # or commit hash, or "Unknown — see Failure Handling"]
 - **Root Cause Category:** [Edge Case / NULL Handling / etc.]
 - **Preventability Verdict:** Preventable / Partially Preventable / Not Preventable
 
@@ -276,54 +338,28 @@ Generate **TWO reports**:
 
 **CRITICAL:** After root cause analysis, classify the bug against patterns.
 
-**FOR HM-* BRANCHES (Web/API):**
+Use the pattern table matching the analyzed repository (see Pattern Set Selection above).
 
 | Pattern | Match Status | Evidence |
 |---------|-------------|----------|
-| Edge Cases (28%) | EXACT/PARTIAL/No Match | [Specific evidence] |
-| Authorization Gaps (22%) | EXACT/PARTIAL/No Match | [Specific evidence] |
-| NULL Handling (18%) | EXACT/PARTIAL/No Match | [Specific evidence] |
-| Logic/Condition Errors (16%) | EXACT/PARTIAL/No Match | [Specific evidence] |
-| Data Validation (10%) | EXACT/PARTIAL/No Match | [Specific evidence] |
-| Missing Implementation (6%) | EXACT/PARTIAL/No Match | [Specific evidence] |
-
-**FOR HBP-* BRANCHES (Portal -- C#/React/TypeScript):**
-
-| Pattern | Match Status | Evidence |
-|---------|-------------|----------|
-| Permission/Authorization (25%) | EXACT/PARTIAL/No Match | [Specific evidence] |
-| NULL/Undefined Handling (20%) | EXACT/PARTIAL/No Match | [Specific evidence] |
-| Cross-Year/Date Calculations (18%) | EXACT/PARTIAL/No Match | [Specific evidence] |
-| UI Event Handling & Refs (15%) | EXACT/PARTIAL/No Match | [Specific evidence] |
-| Logic/Condition Errors (12%) | EXACT/PARTIAL/No Match | [Specific evidence] |
-| Error Propagation (10%) | EXACT/PARTIAL/No Match | [Specific evidence] |
-
-**FOR HMM-* BRANCHES (Flutter/Dart -- Mobile):**
-
-| Pattern | Match Status | Evidence |
-|---------|-------------|----------|
-| Calculation/Logic Errors (30%) | EXACT/PARTIAL/No Match | [Specific evidence] |
-| State Management Issues (25%) | EXACT/PARTIAL/No Match | [Specific evidence] |
-| Navigation/UI Lifecycle (20%) | EXACT/PARTIAL/No Match | [Specific evidence] |
-| Edge Cases (15%) | EXACT/PARTIAL/No Match | [Specific evidence] |
-| NULL/Optional Handling (5%) | EXACT/PARTIAL/No Match | [Specific evidence] |
-| Missing Implementation (5%) | EXACT/PARTIAL/No Match | [Specific evidence] |
+| [Pattern name] ([X]%) | EXACT/PARTIAL/No Match | [Specific evidence] |
+| ... | ... | ... |
 
 **Match Legend:**
 - **EXACT MATCH** - Bug perfectly fits this pattern
 - **PARTIAL** - Some characteristics match but not primary cause
 - **No Match** - Pattern does not apply
 
-**Primary Pattern:** [Pattern with highest match]
-**Secondary Pattern:** [Pattern with partial match, if any]
-**Combined Score:** X% of hotfixes match this pattern combination
+**Primary Pattern:** [Pattern with EXACT match] ([X]%)
+**Secondary Pattern:** [Pattern with PARTIAL match, if any]
+**Combined Score:** [X]% of historical hotfixes match this primary pattern. [Secondary pattern noted as secondary factor, if applicable.]
 
 **Why This Matters:** [Brief explanation of how this pattern typically occurs and how to prevent it]
 
 ## 3. Timeline
 | Event | Date | Details |
 |-------|------|---------|
-| Bug Introduced | YYYY-MM-DD | In PR #XXX / Release-XX |
+| Bug Introduced | YYYY-MM-DD | In PR #XXX / Release-XX (or "Unknown") |
 | Bug Discovered | YYYY-MM-DD | [How discovered] |
 | Bugfix Deployed | YYYY-MM-DD | In bugfix/<TICKET_ID> |
 
@@ -361,11 +397,13 @@ Generate **TWO reports**:
 3. [Specific action tied to analysis]
 ```
 
+**Space management:** If approaching the 1500-word limit, abbreviate Section 3 (Timeline) to a single sentence and Section 7 (Recommendations) to 2 items. Sections 1, 2, 4, 5, and 6 must not be abbreviated.
+
 ---
 
 ### Report 2: E2E Test Recommendations
 
-**Location:** `reports/bugfix-rca/<TICKET_ID>_E2E_Test_Recommendations.md`
+**Location:** `reports/bugfix-rca/<TICKET_ID>-e2e-test-recommendations.md`
 **No word limit**
 
 **Mandatory 5 sections:**
@@ -378,11 +416,12 @@ Generate **TWO reports**:
 
 ## 2. Existing Coverage Analysis
 
-| Repository | Existing Tests | Coverage Status |
-|------------|---------------|-----------------|
-| Selenium | [tests found] | Full/Partial/None |
-| Playwright | [tests found] | Full/Partial/None |
-| Mobile | [tests found] | Full/Partial/None |
+| Framework | Existing Tests | Coverage Status |
+|-----------|---------------|-----------------|
+| Selenium UI | [tests found] | Full/Partial/Gap/N/A |
+| Selenium Integration | [tests found] | Full/Partial/Gap/N/A |
+| Playwright | [tests found] | Full/Partial/Gap/N/A |
+| Mobile | [tests found] | Full/Partial/Gap/N/A |
 
 ## 3. Recommended Test Scenarios
 
@@ -411,7 +450,7 @@ Generate **TWO reports**:
 
 ## Constraints
 
-- **Report 1:** Maximum 1000 words
+- **Report 1:** Maximum 1500 words
 - **Avoid** generic statements like "improve testing"
 - **Every recommendation MUST** link to specific analysis findings
 - **Identify** specific file paths, function names, and code lines
@@ -420,28 +459,32 @@ Generate **TWO reports**:
 - Bugfix Pattern Match section is MANDATORY in every RCA report
 - file:line references for all code analysis
 - Use remote refs only -- never `git checkout` for analysis
-- Filter commits by ticket ID before analysis
+- Filter commits by ticket ID before analysis (with `--no-merges`)
+- **Repository selection MUST be reported** in the Executive Summary
+- Use correct pattern table for the repository, not just the branch prefix
 
 ---
 
 ## Mandatory Pre-Submission Checklist (RCA Report)
 
 ```
-Location: reports/bugfix-rca/<TICKET_ID>_Root_Cause_Analysis.md
-Maximum: 1000 words
+Location: reports/bugfix-rca/<TICKET_ID>-rca.md
+Maximum: 1500 words
 
 - [ ] **Section 1: Executive Summary**
+  - [ ] Repository identified and selection method stated
   - [ ] Bug Description
-  - [ ] Causative PR/Commit
-  - [ ] Root Cause Category (correct for branch type)
+  - [ ] Causative PR/Commit (or "Unknown" with explanation)
+  - [ ] Root Cause Category (correct for repository type)
   - [ ] Preventability Verdict
 - [ ] **Section 2: Bugfix Pattern Match** (MANDATORY)
+  - [ ] Correct pattern table used (based on repository, not just branch prefix)
   - [ ] Full pattern table with EXACT/PARTIAL/No Match per pattern
-  - [ ] Correct pattern table used (Web/API for HM-*, Portal for HBP-*, Mobile for HMM-*)
-  - [ ] Primary Pattern, Secondary Pattern, Combined Score
+  - [ ] Primary Pattern with percentage
+  - [ ] Combined Score = Primary pattern % only (not summed)
   - [ ] "Why This Matters" explanation
 - [ ] **Section 3: Timeline** - Table with events and dates
-  - [ ] Bug Introduced date
+  - [ ] Bug Introduced date (or "Unknown")
   - [ ] Bug Discovered date
   - [ ] Bugfix Deployed date
 - [ ] **Section 4: Technical Root Cause**
@@ -458,11 +501,12 @@ DO NOT SUBMIT if any section is missing.
 ## Mandatory Pre-Submission Checklist (E2E Report)
 
 ```
-Location: reports/bugfix-rca/<TICKET_ID>_E2E_Test_Recommendations.md
+Location: reports/bugfix-rca/<TICKET_ID>-e2e-test-recommendations.md
 No word limit
 
 - [ ] **Section 1: Summary** - What tests needed and why
 - [ ] **Section 2: Existing Coverage Analysis** - Table with ALL 3 repos
+  - [ ] Coverage status uses defined thresholds (Full/Partial/Gap/N/A)
 - [ ] **Section 3: Recommended Test Scenarios** - Each with:
   - [ ] Priority (P0/P1/P2)
   - [ ] Repository

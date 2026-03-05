@@ -1,54 +1,81 @@
 # Root Cause Analysis: <TICKET-ID>
 
 **Branch:** `<branch-name>`
-**Repository:** `<repo-name>`
+**Repository:** `<repo-name>` _(selected because: [branch found in this repo / only repo with matching branch / etc.])_
 **Mode:** Hotfix / Investigation
 **Release:** `<release-branch>` _(Hotfix mode only)_
 **Date:** {date}
 
 ---
 
-## 1. Bug Summary
+## 1. Executive Summary
 
 | Field | Details |
 |-------|---------|
-| **What happened** | {brief description of the bug} |
-| **Who reported** | {reporter or detection method} |
-| **When discovered** | {date/time} |
+| **Repository** | {repo name — how it was selected} |
+| **Bug Description** | {what went wrong} |
+| **Causative PR/Commit** | {PR # or commit hash, or "Unknown — see Failure Handling"} |
+| **Root Cause Category** | {Edge Case / NULL Handling / Logic Error / etc.} |
+| **Preventability Verdict** | Preventable / Partially Preventable / Not Preventable |
+| **Severity** | Critical / High / Medium / Low |
 | **Environment** | Production / Staging / Testing |
-| **Severity** | Critical / Major / Minor |
 
 ## 2. Bugfix Pattern Match
 
-> **MANDATORY SECTION -- Do not skip.**
-
-### Web/API Patterns (HM-* branches)
-
-| Pattern | % of Historical Bugs | Match? | Evidence |
-|---------|---------------------|--------|----------|
-| Edge Cases | 28% | {yes/no} | {evidence} |
-| Authorization Gaps | 22% | {yes/no} | {evidence} |
-| NULL Handling | 18% | {yes/no} | {evidence} |
-| Logic/Condition Errors | 16% | {yes/no} | {evidence} |
-| Data Validation | 10% | {yes/no} | {evidence} |
-| Missing Implementation | 6% | {yes/no} | {evidence} |
-
-### Mobile Patterns (HMM-* branches)
+> **MANDATORY SECTION — Do not skip.**
+>
+> Use the pattern table matching the **analyzed repository** (not just branch prefix).
+> See `context/historical-bugfix-patterns.md` for all repository-specific pattern tables.
 
 | Pattern | % of Historical Bugs | Match? | Evidence |
 |---------|---------------------|--------|----------|
-| Calculation/Logic Errors | 30% | {yes/no} | {evidence} |
-| State Management Issues | 25% | {yes/no} | {evidence} |
-| Navigation/UI Lifecycle | 20% | {yes/no} | {evidence} |
-| Edge Cases | 15% | {yes/no} | {evidence} |
-| NULL/Optional Handling | 5% | {yes/no} | {evidence} |
-| Missing Implementation | 5% | {yes/no} | {evidence} |
-
-_(Use the table matching the repository type. Mark the primary match and any secondary matches.)_
+| [Pattern 1 from repo table] | XX% | EXACT/PARTIAL/No Match | {evidence} |
+| [Pattern 2 from repo table] | XX% | EXACT/PARTIAL/No Match | {evidence} |
+| [Pattern 3 from repo table] | XX% | EXACT/PARTIAL/No Match | {evidence} |
+| [Pattern 4 from repo table] | XX% | EXACT/PARTIAL/No Match | {evidence} |
+| [Pattern 5 from repo table] | XX% | EXACT/PARTIAL/No Match | {evidence} |
+| [Pattern 6 from repo table] | XX% | EXACT/PARTIAL/No Match | {evidence} |
+| _[Pattern 7+ if repo table has more]_ | XX% | EXACT/PARTIAL/No Match | {evidence} |
 
 **Primary Pattern Match:** {pattern name} ({percentage}%)
+**Secondary Pattern:** {pattern name, if any}
+**Combined Score:** {primary %}% of historical hotfixes match this primary pattern. {Secondary pattern noted as secondary factor, if applicable.}
 
-## 3. Root Cause -- 5 Whys Analysis
+> **Combined Score = Primary pattern % only.** Do not sum primary + secondary percentages.
+
+**Why This Matters:** {Brief explanation of how this pattern typically occurs and how to prevent it}
+
+## 3. Timeline
+
+| Event | Date | Details |
+|-------|------|---------|
+| Bug Introduced | YYYY-MM-DD | In PR #XXX / Release-XX (or "Unknown") |
+| Bug Discovered | YYYY-MM-DD | {How discovered} |
+| Bugfix Deployed | YYYY-MM-DD | In bugfix/<TICKET_ID> |
+
+_(If approaching 1500-word limit, abbreviate to a single sentence.)_
+
+## 4. Technical Root Cause
+
+### Original Code (Buggy)
+
+```
+{code snippet showing the bug, 5-10 lines}
+```
+
+**File:** `{file}:{line}`
+
+### Fixed Code
+
+```
+{code snippet showing the fix, 5-10 lines}
+```
+
+### Analysis
+
+{Explain why the original code was incorrect. Reference file:line locations.}
+
+## 5. 5 Whys Analysis
 
 | # | Why? | Answer |
 |---|------|--------|
@@ -56,63 +83,41 @@ _(Use the table matching the repository type. Mark the primary match and any sec
 | 2 | Why did {direct cause} happen? | {deeper cause} |
 | 3 | Why did {deeper cause} happen? | {underlying cause} |
 | 4 | Why did {underlying cause} happen? | {systemic cause} |
-| 5 | Why did {systemic cause} happen? | {root cause} |
+| 5 | Why did {systemic cause} happen? | **{root cause}** |
 
 **Root Cause:** {1-2 sentence summary of the true root cause}
 
-## 4. Code Changes Analysis
+## 6. Preventability Assessment
 
-**Files changed:**
-
-| File | Lines Changed | What Was Fixed |
-|------|--------------|----------------|
-| `{file}:{line}` | +X / -Y | {description} |
-
-**Key code snippet** (before / after):
-
-```
-// Before (buggy)
-{code snippet showing the bug, 5-10 lines}
-
-// After (fixed)
-{code snippet showing the fix, 5-10 lines}
-```
-
-## 5. Preventability Assessment
-
-| Prevention Layer | Could it have caught this? | Rating (1-5) | Notes |
-|-----------------|---------------------------|--------------|-------|
-| Requirements Analysis | {yes/no} | {1-5} | {why} |
-| Code Review | {yes/no} | {1-5} | {why} |
-| Unit Tests | {yes/no} | {1-5} | {why} |
-| E2E Tests | {yes/no} | {1-5} | {why} |
-| QA Manual Testing | {yes/no} | {1-5} | {why} |
-| Monitoring/Alerts | {yes/no} | {1-5} | {why} |
+| Prevention Layer | Could it have caught this? | Gap |
+|-----------------|---------------------------|-----|
+| Requirements Analysis | Yes/No | {details} |
+| Code Review | Yes/No | {details} |
+| Unit Tests | Yes/No | {details} |
+| Integration Tests | Yes/No | {details} |
+| E2E Automated Tests | Yes/No | {details} |
+| Manual Acceptance Testing | Yes/No | {details} |
 
 **Most effective prevention:** {which layer would have been most effective}
 
-## 6. Recommendations
+## 7. Recommendations
 
 1. **Immediate:** {action to prevent recurrence}
 2. **Short-term:** {process or test improvement}
 3. **Long-term:** {systemic fix or pattern prevention}
 
-## 7. Lessons Learned
-
-| Lesson | Action Item | Owner |
-|--------|-------------|-------|
-| {lesson 1} | {specific action} | {team/role} |
-| {lesson 2} | {specific action} | {team/role} |
-| {lesson 3} | {specific action} | {team/role} |
+_(If approaching 1500-word limit, abbreviate to 2 items.)_
 
 ---
 
 **Constraints reminder:**
 
-- Max 1000 words
-- Bugfix Pattern Match section (Section 2) is MANDATORY -- never skip it
-- Use the correct pattern table (Web/API vs Mobile) based on repository
+- Max 1500 words
+- Bugfix Pattern Match section (Section 2) is MANDATORY — never skip it
+- Use the correct pattern table based on **repository** (not just branch prefix)
+- Combined Score = primary pattern % only — do NOT sum percentages
+- Repository selection must be stated in the header
 - file:line references for all code analysis
 - 5 Whys must reach a systemic root cause, not stop at the surface
-- Use HM-* pattern table for HealthBridge web/API repositories
-- Use HMM-* pattern table for HealthBridge Mobile repositories
+- If causative commit is unknown, state "Unknown" — do not fabricate
+- Sections 3 and 7 may be abbreviated if space is tight; Sections 1, 2, 4, 5, 6 must not be abbreviated

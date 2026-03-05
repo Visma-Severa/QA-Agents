@@ -83,13 +83,17 @@ Requirement: [Paste requirement text]
 
 Based on analysis of production hotfixes, incomplete requirements were a major defect contributor. The scoring system prevents planning when requirements are ambiguous.
 
-### Scoring Dimensions (2 points each, 10 total)
+### Scoring Dimensions (7 weighted dimensions, 10 total)
 
-1. **Business Rules** - All rules with examples?
-2. **Edge Cases** - Comprehensive coverage?
-3. **Integrations** - All points defined?
-4. **Error Handling** - Scenarios detailed?
-5. **Repository Scope** - All impacts identified?
+| Dimension | Weight | Focus |
+|-----------|--------|-------|
+| Completeness | 20% | All business rules defined with examples? |
+| Clarity | 15% | Unambiguous, no interpretation needed? |
+| Testability | 15% | Measurable acceptance criteria? |
+| Feasibility | 15% | Technically viable within architecture? |
+| Edge Cases | 10% | Boundary conditions, error paths covered? |
+| Integration Impact | 10% | Cross-repo dependencies identified? |
+| Domain Compliance | 15% | Healthcare regulations addressed? |
 
 ### Interpretation
 
@@ -125,14 +129,14 @@ All reports saved to `reports/requirements-analysis/`:
 
 ## Word Limits
 
-- Requirements Analysis: 1,000 words max
+- Requirements Analysis: 1,500 words max
 - QA Test Plan: 1,000 words max
 - Dev Estimation: 800 words max
 
 ## Quality Checklist
 
 **Phase 1 (always):**
-- [ ] All 12 sections complete
+- [ ] All 13 sections complete
 - [ ] Completeness score calculated
 - [ ] If score < 7: Critical questions listed
 - [ ] Impacted repositories identified

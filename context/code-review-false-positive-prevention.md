@@ -1,10 +1,15 @@
 # Code Review: False Positive Prevention
 
+**Version:** 1.0
+**Last Updated:** 2026-03-05
+
 **Purpose:** Documented patterns that agents MUST understand before flagging issues. These reduce false positives by teaching agents about framework safety nets, data flow guarantees, and codebase conventions.
 
 ---
 
 ## Rule 1: Trust Framework-Level Safety Nets
+
+**Applies to:** HealthBridge-Web. For other repositories, verify whether equivalent safety nets exist in their respective AGENTS docs before applying.
 
 **DO NOT flag null/empty handling as an issue when framework extensions already handle it.**
 
@@ -39,6 +44,8 @@ The `ClinicalValidator` class sanitizes ALL user input before business logic rec
 
 ## Rule 2: Analyze Data Flow End-to-End (Write + Read)
 
+**Applies to:** All repositories. The write/read pair patterns below use HealthBridge-Web naming conventions — adapt the file naming patterns to match the repository being reviewed.
+
 **DO NOT flag edge cases on the READ side without checking what the WRITE side guarantees.**
 
 ### Example: Diagnosis Code Parsing (Patient Records - Dev Feedback Feb 2026)
@@ -56,6 +63,7 @@ The agent flagged `Substring()` crash if the code is shorter than expected, but 
 2. **Check write-side validation**: Does the save handler validate/format the data?
 3. **Check if the edge case can actually occur**: Can the flagged input value actually exist given write-side guarantees?
 4. **If write side prevents it**: Mark as "N/A - write-side guarantee" instead of flagging as issue
+5. **If the write-side file is not in the diff**: Search the repo by filename pattern (see write/read pair table below). If not found, label finding as "UNVERIFIED" and downgrade to Suggestion — same fallback as Rule 5.
 
 ### How to Find Write/Read Pairs
 
@@ -69,6 +77,8 @@ The agent flagged `Substring()` crash if the code is shorter than expected, but 
 ---
 
 ## Rule 3: Standard Patterns Are Not Issues
+
+**Applies to:** HealthBridge-Web. For other repositories, verify whether the same DAL patterns are used before applying — microservice repos may use different ORM conventions (e.g., EF Core repositories vs CQRS handlers).
 
 **DO NOT flag standard codebase patterns as potential issues.**
 
@@ -94,6 +104,8 @@ All database connections use `using` blocks or are managed by the DI container's
 
 ## Rule 4: Type Conversions for Medical Data
 
+**Applies to:** HealthBridge-Web. For other repositories, verify whether `ClinicalValidator` or an equivalent sanitization layer exists before assuming inputs are safe.
+
 **Medical data type conversions in HealthBridge follow well-defined patterns** — they are not bug patterns.
 
 C# `Enum.Parse<T>(stringValue)` is used for clinical code types, and is safe when:
@@ -105,6 +117,8 @@ Then `Enum.Parse<T>(value)` or pattern matching on enums is safe and idiomatic C
 - Input is NOT sanitized (raw user input from external API)
 - Enum has been recently extended (new clinical codes not covered in switch expressions)
 - External system provides codes outside the expected range (e.g., new ICD-10 revision codes)
+
+**If you cannot determine whether ClinicalValidator was used** (e.g., sanitization happens several layers up and is not visible in the diff): Label the finding as "UNVERIFIED" and downgrade to Suggestion — same fallback as Rule 5. Do NOT flag as a confirmed issue without tracing the input path.
 
 ---
 
@@ -183,10 +197,21 @@ A code change can only introduce a problem if the NEW code is WORSE than the OLD
 | Spaces | Tabs | Spaces | Regression — Valid finding |
 | Tabs | Tabs | Spaces | No change — Not a finding for this PR |
 | Mixed | Consistent | Either | Improvement — NOT an issue |
+| *(new file)* | Any style | Surrounding files in same directory | Check directory convention — flag only if inconsistent with sibling files |
+| *(new file)* | Any style | No sibling files / mixed directory | NOT a finding — no established convention to violate |
 
-### Source: HM-14125 Code Review (Feb 2026)
+### New Files (No "Old Code" to Compare)
 
-Agent flagged indentation without comparing old vs new. The old line was the outlier; the fix aligned it with neighbors.
+For brand new files added in the PR, there is no old code to compare against. In this case:
+
+1. **Check sibling files** in the same directory for an established style convention
+2. **If siblings are consistent** and the new file deviates → Valid finding (new file should match directory convention)
+3. **If siblings are mixed or absent** → NOT a finding (no convention to violate)
+4. **Never flag style in a new file in isolation** — there must be a concrete convention it violates
+
+### Source
+
+See Rule 5 example (HM-14125) — same incident, where the agent also failed to compare old vs new code direction before flagging.
 
 ---
 
@@ -198,3 +223,16 @@ When developers provide feedback that a code review finding was a false positive
 2. **Add a new rule or example** to the appropriate section above
 3. **Include the source** (developer feedback date, ticket ID if applicable)
 4. **Reference the dev docs** that would have prevented the false positive
+
+---
+
+## Change Log
+
+| Date | Rule | Change | Source |
+|------|------|--------|--------|
+| 2026-03-05 | All | Initial version with 6 rules | HM-14125 dev feedback, codebase analysis |
+| 2026-03-05 | Rule 4 | Added "can't determine" fallback — label UNVERIFIED, downgrade to Suggestion | Cross-doc consistency review |
+| 2026-03-05 | Rule 6 | Added new-file guidance and decision matrix rows | Cross-doc consistency review |
+| 2026-03-05 | Rules 1-4 | Added repo-scoping headers (Applies to: HealthBridge-Web) | Cross-doc consistency review |
+| 2026-03-05 | Rule 2 | Added fallback step 5 for when write-side file is outside the diff | Cross-doc consistency review |
+| 2026-03-05 | Rule 6 | Consolidated duplicate HM-14125 example — now references Rule 5 | Cross-doc consistency review |

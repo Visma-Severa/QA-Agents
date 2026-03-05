@@ -13,6 +13,19 @@ Transform technical PR information into clear, non-technical release notes that 
 
 `reports/week-release/Release-XX-YYYY-Release-Notes.md`
 
+## Constraints
+
+| Constraint | Value |
+|------------|-------|
+| **Target Length** | 400-600 words |
+| **Maximum Length** | 800 words |
+| **Highlights** | Max 5 items |
+| **Changes by Area** | Max 2 sentences per PR |
+| **Bug Fixes** | Max 5 items |
+| **Trim Priority** | If over limit, cut: (1) low-impact bug fixes, (2) minor UI changes, (3) improvement PRs. Never trim Highlights or patient-safety items. |
+
+**Edge Case — No Customer-Visible Changes:** If all PRs are excluded by filtering heuristics, generate only the Header and Footer with the note: *"This release contains internal improvements and infrastructure updates only. No customer-visible changes are included."*
+
 ---
 
 ## Document Structure
@@ -26,6 +39,9 @@ Transform technical PR information into clear, non-technical release notes that 
 ```
 
 ### 2. Highlights (Top 3-5 Features)
+
+**Selection criteria:** Prioritize by (1) highest customer visibility, (2) new features over improvements, (3) patient safety or compliance relevance. Exclude internal improvements even if large in scope.
+
 ```markdown
 ## Highlights
 
@@ -35,7 +51,7 @@ Transform technical PR information into clear, non-technical release notes that 
 ```
 
 ### 3. Changes by Area
-Organize customer-visible changes by functional area:
+Organize customer-visible changes by functional area. Only include sections for areas that have PRs in this release — the areas below are examples, not a fixed list. Use the full Area Categorization table (including Reporting & Analytics and User Interface) for mapping.
 
 ```markdown
 ## What's New and Improved
@@ -119,6 +135,8 @@ Skip PRs where:
 - Only files changed are in: `Tests/`, `.github/`, `docs/`
 - Title contains: `bump`, `upgrade`, `dependency`
 
+**Note:** When used as part of a release analysis run, these heuristics supplement the agent's exclusion list — apply both. When used standalone, these heuristics are the primary filter.
+
 ---
 
 ## Writing Guidelines
@@ -147,7 +165,9 @@ Skip PRs where:
 
 ## Area Categorization
 
-Map PR content to customer-facing areas:
+Map PR content to customer-facing areas. Functional area categories should align with those in `context/e2e-test-coverage-map.md` — if a new area is added to the coverage map, add it here too.
+
+If a PR cannot be mapped to any listed area, include it under `[Other Improvements]` rather than silently skipping it.
 
 | Code Indicators | Area |
 |-----------------|------|

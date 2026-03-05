@@ -1,5 +1,5 @@
 ---
-name: HB-QA-Feedback
+name: HB-Feedback
 description: Process developer feedback on code review reports and track accuracy metrics
 argument-hint: Provide ticket ID (e.g., HM-14200) or "aggregate" for accuracy report
 tools: ['read/readFile', 'agent', 'search', 'editFiles', 'runInTerminal']
@@ -47,6 +47,8 @@ Glob: reports/code-review/*<TICKET-ID>*
 
 If no report found, inform the developer and stop.
 
+**Check for existing interactive feedback:** Before parsing Section 10, check if `reports/feedback/<TICKET-ID>-feedback.json` already exists. If it does and contains `"feedback_mode": "interactive"`, skip Steps 2–6 and report: "Interactive feedback already processed for \<TICKET-ID\>. Run `aggregate` to include in metrics." If the file exists with `"feedback_mode": "static"`, proceed normally (idempotent overwrite).
+
 #### 2. Read and Parse Section 10 (Developer Feedback)
 
 Read the report file and locate **Section 10: Developer Feedback**.
@@ -66,7 +68,7 @@ Parse the feedback table:
   - `False Positive` or `FP` -> `"false_positive"`
   - `Won't Fix` or `WF` -> `"wont_fix"`
   - Empty/blank -> skip this row (no feedback given)
-- Extract "Overall Accuracy" score (number out of 10)
+- Extract "Overall Accuracy" score (number out of 10). If blank or non-numeric (e.g., `___/10`), save as `null`. Exclude null values from average accuracy calculations in aggregate mode.
 - Extract "Additional comments" text
 
 #### 3. Validate Feedback
@@ -80,7 +82,7 @@ Please fill in the Verdict column for each finding:
 - False Positive - Finding is incorrect or not applicable
 - Won't Fix - Finding is valid but won't be addressed
 
-Then run @hb-qa-feedback <TICKET-ID> again.
+Then run @hb-feedback <TICKET-ID> again.
 ```
 **Stop execution.**
 
@@ -94,31 +96,15 @@ From the report header, extract:
 - **Risk Level** (from "Risk Level" field)
 - **Branch** (from "Branch" field)
 
-#### 5. Map Findings to Pattern Categories
+#### 5. Map Findings to Pattern Categories and Severity
 
-For each finding, map the Section reference to a hotfix pattern category:
+**Section 3.2 findings:**
+- **Pattern category:** Read directly from the pattern name in the Section 3.2 table row (e.g., "Edge Cases (XX%)" → `"Edge Cases"`). The code review agent pre-populates these from the repo-specific pattern table in `context/historical-bugfix-patterns.md` — do not infer by keyword matching.
+- **Severity:** Derive from the finding's status in Section 3.2: `fail` → `"warning"`, `warn` → `"suggestion"`. This matches the derivation rules in the code review agent's Step 8.4.
 
-**Section 3.2 findings -> Map by pattern name in the finding:**
-
-| Finding Contains | Pattern Category |
-|------------------|------------------|
-| `NULL`, `null check`, `Nothing` | NULL Handling |
-| `Edge Case`, `boundary`, `empty collection` | Edge Cases |
-| `Enum`, `Switch`, `Select Case`, `default` | Enum/Switch |
-| `Logic`, `condition`, `behavior change` | Logic/Condition |
-| `Type`, `casting`, `CInt`, `CDec`, `CType` | Type Casting |
-| `Missing`, `TODO`, `incomplete`, `dead code` | Missing Implementation |
-| `Permission`, `authorization`, `access` | Permission/Authorization |
-| `Date`, `year`, `period`, `cross-year` | Date Calculations |
-| `UI`, `ref`, `event`, `blur`, `modal` | UI Event Handling |
-| `Error`, `propagation`, `exception` | Error Propagation |
-| `State`, `Riverpod`, `disposed`, `mounted` | State Management |
-| `Navigation`, `pop`, `route`, `back button` | Navigation/UI Lifecycle |
-
-**Section 6 findings -> Use severity from the report:**
-- Issues under "Critical" -> severity: "critical"
-- Issues under "Warning" -> severity: "warning"
-- Issues under "Suggestion" -> severity: "suggestion"
+**Section 6 findings:**
+- **Pattern category:** Infer from the finding description. If the finding clearly maps to a hotfix pattern category (e.g., mentions null handling, authorization, edge cases), use that category. Otherwise use `"Other"`.
+- **Severity:** Read directly from the subsection: Issues under "Critical" → `"critical"`, "Warning" → `"warning"`, "Suggestion" → `"suggestion"`.
 
 #### 6. Save Structured Feedback as JSON
 
@@ -130,16 +116,18 @@ Save to: `reports/feedback/<TICKET-ID>-feedback.json`
   "report_file": "<TICKET-ID>-code-review.md",
   "report_date": "YYYY-MM-DD",
   "feedback_date": "YYYY-MM-DD",
+  "feedback_mode": "static",
   "repository": "HealthBridge-Web",
   "risk_level": "Medium",
   "findings": [
     {
       "id": 1,
       "section": "3.2",
-      "finding": "Missing null check in PatientRecordService.GetAllergyHistory",
+      "finding": "NULL Handling (XX%) — Missing null check in PatientRecordService.GetAllergyHistory",
       "pattern_category": "NULL Handling",
-      "severity": null,
+      "severity": "warning",
       "verdict": "valid",
+      "deep_analysis_requested": false,
       "comment": ""
     },
     {
@@ -149,6 +137,7 @@ Save to: `reports/feedback/<TICKET-ID>-feedback.json`
       "pattern_category": "Missing Implementation",
       "severity": "suggestion",
       "verdict": "wont_fix",
+      "deep_analysis_requested": false,
       "comment": "Tech debt, not blocking"
     }
   ],
@@ -159,7 +148,8 @@ Save to: `reports/feedback/<TICKET-ID>-feedback.json`
     "rated_findings": 6,
     "valid": 4,
     "false_positive": 1,
-    "wont_fix": 1
+    "wont_fix": 1,
+    "deep_analysis_requested": 0
   }
 }
 ```
@@ -180,14 +170,17 @@ Saved to: reports/feedback/<TICKET-ID>-feedback.json
 ```
 
 **If any False Positives found, also show:**
+
+Before suggesting rules, read `context/code-review-false-positive-prevention.md` and check if a rule already exists for this pattern. Only suggest a new rule if no equivalent rule is present.
+
 ```
 False Positive Analysis:
-| # | Finding | Pattern | Developer Reason |
-|---|---------|---------|------------------|
-| X | [finding] | [category] | [comment from developer] |
+| # | Finding | Pattern | Developer Reason | Existing Rule? |
+|---|---------|---------|------------------|----------------|
+| X | [finding] | [category] | [comment from developer] | Yes (Rule N) / No |
 
 Consider updating context/code-review-false-positive-prevention.md with:
-- [Suggested rule based on FP pattern and developer comment]
+- [Suggested rule based on FP pattern and developer comment — only if no existing rule covers it]
 
 Use the "Update False Positive Prevention" handoff to apply these suggestions.
 ```
@@ -204,17 +197,17 @@ Use the "Update False Positive Prevention" handoff to apply these suggestions.
 ls reports/feedback/*-feedback.json
 ```
 
-Read each JSON file and collect all feedback data.
+Read each JSON file and collect all feedback data. If a JSON file fails to parse, skip it, log the filename as "skipped — parse error" in the report, and continue with remaining files. If multiple files exist for the same ticket ID, use the most recent by `feedback_date`. Do not count the same ticket twice.
 
-**If no feedback files exist:**
+**If no feedback files exist (or all files failed to parse):**
 ```
 No feedback data found in reports/feedback/
 
 To start collecting feedback:
-1. Run a code review: @hb-qa-code-review <TICKET-ID>
+1. Run a code review: @hb-code-review <TICKET-ID>
 2. Developer fills in Section 10 of the report
-3. Process feedback: @hb-qa-feedback <TICKET-ID>
-4. Then run: @hb-qa-feedback aggregate
+3. Process feedback: @hb-feedback <TICKET-ID>
+4. Then run: @hb-feedback aggregate
 ```
 **Stop execution.**
 
@@ -244,7 +237,7 @@ From all feedback files, calculate:
 Read: prompts/feedback/feedback-template.md
 ```
 
-Generate report following template structure.
+Generate report following template structure. If the template file is not found, generate the report using the metrics calculated in Step 2 with sections: Overview, Verdict Distribution, Per-Pattern FP Rates, Trends, Suggested Prevention Updates.
 
 Save to: `reports/feedback/accuracy-report.md`
 
@@ -252,7 +245,7 @@ Save to: `reports/feedback/accuracy-report.md`
 
 Based on aggregated false positive patterns:
 
-**If a pattern category has FP rate > 30%:**
+**If a pattern category has ≥ 5 rated findings AND FP rate > 30%:**
 - Flag as "high false positive area"
 - Extract common developer reasons from comments
 - Generate concrete rule suggestion for `context/code-review-false-positive-prevention.md`
@@ -296,7 +289,7 @@ Full report: reports/feedback/accuracy-report.md
 
 ## Compatibility with Interactive Mode
 
-The Code Review Agent can generate feedback JSON directly when run with the `interactive` keyword. These files have `"feedback_mode": "interactive"` in the JSON.
+The Code Review Agent generates feedback JSON directly as part of its default flow (interactive mode is always on unless `--no-feedback` is used). These files have `"feedback_mode": "interactive"` in the JSON.
 
 **When processing interactive feedback files:**
 - The JSON already exists at `reports/feedback/<TICKET>-feedback.json`
@@ -323,4 +316,5 @@ The Code Review Agent can generate feedback JSON directly when run with the `int
 - This agent does NOT perform code review - it only processes feedback on existing reviews
 - Always use the `Read` tool to read report files - never fabricate content
 - The accuracy report is regenerated each time aggregate mode runs (not incremental)
-- Pattern category mapping is best-effort - if a finding doesn't match any category, use "Other"
+- Section 3.2 pattern categories are read directly from the report table — no keyword inference needed
+- Section 6 pattern categories are best-effort — if a finding doesn't clearly map to any category, use "Other"

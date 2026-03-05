@@ -1,6 +1,6 @@
 # Release Analysis Agent
 
-**Agent:** `@hb-qa-release-analysis`
+**Agent:** `@hb-release-analysis`
 **Purpose:** Analyze release branches for risk assessment, test coverage gaps, and release readiness across the HealthBridge multi-repository ecosystem. Generates **THREE outputs**: Risk Assessment, Release Notes, and Slack Summary.
 
 ---
@@ -14,6 +14,8 @@
 | Release Assessment Prompt | `prompts/release-assessment/release-assessment-prompt.md` | Risk evaluation criteria |
 | Release Notes Prompt | `prompts/release-assessment/release-notes-prompt.md` | Customer-facing release notes format |
 | Slack Message Template | `prompts/release-assessment/slack-message-template.md` | Slack notification format |
+| Historical Bugfix Patterns | `context/historical-bugfix-patterns.md` | Repo-specific pattern tables for Section 5 hotfix analysis |
+| Repository Dependencies | `context/healthbridge-repository-dependencies.md` | Consumer/Provider dependency map — blast radius for release risk |
 
 **Before starting analysis:**
 ```
@@ -24,6 +26,8 @@ Read: prompts/release-assessment/release-notes-prompt.md
 ---
 
 ## Initial Setup
+
+> **Design note:** Unlike PR-level agents that auto-detect repos from a ticket ID, this agent requires a release branch name that cannot be inferred from a ticket ID. The confirmation step below is intentional.
 
 When this command is invoked, respond with:
 
@@ -114,7 +118,9 @@ For each source file changed across all PRs, find corresponding test files and i
 
 **C. Per-PR Code Review Analysis Agent**
 
-**IMPORTANT:** Delegate to the Code Review Agent (`@hb-qa-code-review`) for each PR. This ensures consistent detection rules and automatic propagation of new checks.
+**IMPORTANT:** Delegate to the Code Review Agent (`@hb-code-review`) for each PR. This ensures consistent detection rules and automatic propagation of new checks.
+
+**Invocation:** For each merged PR, extract the ticket ID from the PR title (e.g., `HM-14200` from "HM-14200 Fix prescription renewal"). Invoke as `@hb-code-review <TICKET-ID> --no-feedback` — this skips the interactive feedback loop and produces static Section 10 tables, which is appropriate for release-level aggregation. If a PR has no ticket ID in its title, skip code review delegation and flag it as "No ticket ID — manual review required" in the aggregated findings.
 
 The Code Review Agent automatically checks patterns based on branch prefix:
 - **HM-* (HealthBridge-Web):** Edge Cases, Authorization, NULL, Logic, Validation, Missing Implementation
@@ -181,7 +187,7 @@ For ALL P0 actions, provide detailed test descriptions with steps and expected r
 
 ### 4. Wait for All Sub-Agents and Synthesize
 
-**IMPORTANT**: Wait for ALL sub-agent tasks to complete before proceeding.
+**IMPORTANT**: Wait for ALL sub-agent tasks to complete before proceeding. If a sub-agent does not return results or returns incomplete data, proceed with available results and flag the incomplete section as "⚠️ Sub-agent incomplete — manual review required."
 
 Compile findings into **THREE** documents:
 
@@ -192,7 +198,8 @@ Compile findings into **THREE** documents:
 ### Report 1: Risk Assessment Report
 
 **Location:** `reports/week-release/Release-<WeekNumber>-<YEAR>-Risk-Assessment.md`
-**Max:** 1500-2000 words
+**WeekNumber** = ISO 8601 week number of the release date, zero-padded (e.g., `Release-08-2026` for week 8 of 2026).
+**Max:** 1500 words
 
 **Sections:**
 
@@ -222,7 +229,7 @@ Compile findings into **THREE** documents:
 - [ ] **Section 4: Automated Regression Test Coverage** (CRITICAL)
   - [ ] **4.1 E2E Coverage Summary** - ALL functional tickets:
     | Ticket | Feature Area | Selenium Coverage | Playwright Coverage | Mobile Coverage | Overall Status |
-    - [ ] Coverage Statistics (Full/Partial/None/N/A counts and %)
+    - [ ] Coverage Statistics (Full/Partial/None/N/A counts and %) — N/A entries excluded from coverage % calculation (same formula as Slack message)
   - [ ] **4.2 Existing E2E Tests for This Release**
     - [ ] Selenium Tests table
     - [ ] Playwright Tests table
@@ -241,7 +248,7 @@ Compile findings into **THREE** documents:
     | DELETE | [obsolete tests] | [Framework] | HM-XXXXX | P2 | S |
     - [ ] P0 Test Descriptions (detailed steps for critical tests)
 
-- [ ] **Section 5: Hotfix Pattern Analysis** - Use patterns based on branch prefix
+- [ ] **Section 5: Hotfix Pattern Analysis** - Apply patterns per-PR based on each PR's ticket prefix, not the release branch prefix. Group findings by repository. Use repo-specific tables from `context/historical-bugfix-patterns.md`.
 
 - [ ] **Section 6: Risk Mitigation**
   - [ ] Critical Priority (Blocking Issues)
@@ -276,6 +283,7 @@ Compile findings into **THREE** documents:
 - Include: Customer-visible features, UI changes, bug fixes users would notice
 - Exclude: Infrastructure, refactoring, test-only changes, CI/CD updates
 - Skip PRs with titles containing: `refactor`, `cleanup`, `ci:`, `chore:`, `test:`, `docs:`
+- Fallback: If a PR title doesn't match any exclusion keyword but the change is clearly infrastructure/internal (e.g., only test files, migrations, or config files changed), exclude it. When uncertain, include the PR under the most relevant area with an italicized note: *(internal change — included for completeness)*.
 
 ### Report 3: Slack Notification Message
 
@@ -302,7 +310,7 @@ E2E Regression Coverage = (Fully covered + 0.5 x Partially covered) / Total impa
 3. RISKS & GAPS (critical first, then medium, specific issues)
 4. E2E REGRESSION COVERAGE (impacted areas + coverage list -- NO TABLES)
 5. MANUAL TESTING REQUIRED (specific scenarios with priorities)
-6. RECOMMENDATION (Ready/Conditional/Delay with action items)
+6. RECOMMENDATION (GO / CONDITIONAL GO / NO-GO with action items)
 7. Link to full report
 
 **CRITICAL:** Use LISTS, not tables, for test coverage. Slack doesn't render markdown tables well.
@@ -311,12 +319,13 @@ E2E Regression Coverage = (Fully covered + 0.5 x Partially covered) / Total impa
 ```
 ## TEST COVERAGE
 
-**Combined:** XX%
+**E2E Regression Coverage:** XX%
 
-- **Unit Tests:** XX%
-- **Integration Tests:** XX%
-- **E2E Tests:** XX%
+- **E2E Coverage:** XX% (calculated per formula above)
+- **PRs with Unit Tests:** X/Y (count of PRs with passing unit test coverage / total PRs)
 ```
+
+Unit Test % = PRs with existing unit test coverage / total PRs. Only report E2E coverage as a percentage — unit test coverage is reported as a ratio since per-PR unit test depth varies too much for a meaningful aggregate %.
 
 ---
 
@@ -334,7 +343,7 @@ This agent delegates per-PR code quality analysis to the **Code Review Agent** t
 
 ## Constraints
 
-- **Report size**: 1500-2000 words (Risk Assessment)
+- **Report size**: 1500 words (Risk Assessment) — **HARD FAIL if exceeded**. If Risk Assessment exceeds 1500 words or Slack message exceeds 300 words, stop, report section-by-section word counts, and apply content filtering (exclude low-risk PRs from Section 2 table, summarize Section 3 by count only). After displaying word count breakdown, wait for user instruction. Do not auto-regenerate.
 - **PR Names**: Use original PR titles only -- DO NOT generate AI summaries
 - **Specificity**: Every recommendation must link to a specific PR number
 - **No duplicates**: Each section provides unique value
@@ -352,7 +361,7 @@ This agent delegates per-PR code quality analysis to the **Code Review Agent** t
 ### Report 1: Risk Assessment Report
 ```
 Location: reports/week-release/Release-<WeekNumber>-<YEAR>-Risk-Assessment.md
-Maximum: 1500-2000 words
+Maximum: 1500 words
 
 - [ ] **Section 1: Executive Summary**
   - [ ] Overall Risk Level with justification
@@ -408,7 +417,7 @@ Target: 250-350 words | Maximum: 500 words
   - [ ] N/A PRs excluded from calculation
   - [ ] Coverage thresholds applied (>=70% good | 50-69% caution | <50% high risk)
 - [ ] MANUAL TESTING REQUIRED - Specific scenarios with priorities
-- [ ] RECOMMENDATION - Ready/Conditional/Delay + action items
+- [ ] RECOMMENDATION - GO / CONDITIONAL GO / NO-GO + action items
 - [ ] Link to full report
 
 Format Rules:

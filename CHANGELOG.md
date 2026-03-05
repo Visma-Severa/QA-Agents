@@ -10,16 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 #### QA Agents (7 agents)
-- **Code Review Agent** (`@hb-qa-code-review`): Analyze PR/branch for code quality, test gaps, and risks
+- **Code Review Agent** (`@hb-code-review`): Analyze PR/branch for code quality, test gaps, and risks
   - Comprehensive report (1300 words max) and brief mode (450 words)
   - Predictive bug detection based on historical hotfix patterns
   - E2E test coverage gap analysis across all 3 frameworks
   - Client-server security consistency check
   - Interactive developer feedback mode with deep analysis
-- **Acceptance Tests Agent** (`@hb-qa-acceptance-tests`): Generate Given/When/Then test scenarios
+- **Acceptance Tests Agent** (`@hb-acceptance-tests`): Generate Given/When/Then test scenarios
   - Requirements validation (compare implementation vs original requirements)
   - Coverage summary reporting
-- **Bug Report Agent** (`@hb-qa-bug-report`): Analyze errors and generate ticket-ready bug reports
+- **Bug Report Agent** (`@hb-bug-report`): Analyze errors and generate ticket-ready bug reports
   - 7-phase analysis framework
   - Codebase pattern search (finds same bug in other files)
   - 3 fix options with complexity assessment
@@ -37,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Release composition table
   - 3-tier risk: Low / Medium / Critical
   - Generates Risk Assessment, Release Notes, and Slack Message
-- **Feedback Agent** (`@hb-qa-feedback`): Interactive developer feedback collection
+- **Feedback Agent** (`@hb-feedback`): Interactive developer feedback collection
   - Rate findings as Valid / False Positive / Won't Fix / Provide More Information
   - Deep analysis workflow for detailed investigation
   - JSON output for accuracy tracking

@@ -24,34 +24,51 @@
 
 ## 2. Business Gap Analysis
 
-| Gap Type | Description | Severity |
-|----------|-------------|----------|
-| Missing Requirement | {what's missing} | Red/Yellow/Green |
-| Ambiguous Requirement | {what's unclear} | Red/Yellow/Green |
-| Conflicting Requirement | {what conflicts} | Red/Yellow/Green |
+| Gap Type | Description / Question | Impact if Unaddressed | Severity |
+|----------|----------------------|----------------------|----------|
+| Missing Requirement | {what's missing} | {what could go wrong} | Low/Medium/High |
+| Ambiguous Requirement | {what's unclear} | {user confusion/errors} | Low/Medium/High |
+| Conflicting Requirement | {what conflicts} | {integration failures} | Low/Medium/High |
+
+### Domain / Regulatory Gaps
+
+| Gap | Regulation / Source | Impact | Priority |
+|-----|---------------------|--------|----------|
+| {what's missing} | {law/regulation} | {consequence} | Critical/Medium/Low |
+
+_(Use "N/A — no regulatory gaps identified" if not applicable)_
 
 ### Critical Questions
 
 1. {specific question about a gap}
 2. {specific question about ambiguity}
 
-## 3. Requirements Completeness Score
+## 3. Requirements Readiness Score
 
-| # | Dimension | Score (0-2) | Evidence |
-|---|-----------|-------------|----------|
-| 1 | Functional Requirements | 0/1/2 | {why this score} |
-| 2 | Edge Cases | 0/1/2 | {why this score} |
-| 3 | Error Handling | 0/1/2 | {why this score} |
-| 4 | Integration Impact | 0/1/2 | {why this score} |
-| 5 | Data Requirements | 0/1/2 | {why this score} |
-| 6 | Security & Authorization | 0/1/2 | {why this score} |
-| | **TOTAL** | **X/12 -> normalized to Y/10** | |
+**This is the canonical scoring definition.** All other documents (prompt, orchestrator) reference this table — update weights and dimensions here only.
 
-### Scoring Guide
+| Criteria | Weight | Score | Weighted |
+|----------|--------|-------|----------|
+| **Completeness** | 20% | X/10 | X.XX |
+| **Clarity** | 15% | X/10 | X.XX |
+| **Testability** | 15% | X/10 | X.XX |
+| **Feasibility** | 15% | X/10 | X.XX |
+| **Edge Cases Defined** | 10% | X/10 | X.XX |
+| **Integration Impact Defined** | 10% | X/10 | X.XX |
+| **Domain Compliance** | 15% | X/10 | X.XX |
+| **Total** | 100% | - | **X.X/10** |
 
-- **0 (Missing):** Not mentioned at all in requirements
-- **1 (Partial):** Mentioned but incomplete or vague
-- **2 (Complete):** Fully specified with clear acceptance criteria
+### Score Breakdown
+
+| Criteria | Score | Justification |
+|----------|-------|---------------|
+| **Completeness** | X/10 | {Are all business rules defined?} |
+| **Clarity** | X/10 | {Is the user story unambiguous?} |
+| **Testability** | X/10 | {Can acceptance criteria be tested?} |
+| **Feasibility** | X/10 | {Is it technically achievable?} |
+| **Edge Cases Defined** | X/10 | {What % of edge cases have defined behavior?} |
+| **Integration Impact** | X/10 | {Are cross-system impacts understood?} |
+| **Domain Compliance** | X/10 | {Do requirements align with healthcare regulations?} |
 
 ### Readiness Decision
 
@@ -93,6 +110,7 @@
 | Repository | Affected? | Changes Needed |
 |------------|-----------|----------------|
 | HealthBridge-Web | yes/no | {description} |
+| HealthBridge-Portal | yes/no | {description} |
 | HealthBridge-Api | yes/no | {description} |
 | HealthBridge-Mobile | yes/no | {description} |
 
@@ -120,17 +138,35 @@ _(Use "N/A -- No external integrations affected" if not applicable)_
 |-------|------|------------|-----------|
 | {field} | {type} | {rules} | yes/no |
 
+## 8.5. Existing Code Impact
+
+| File/Component | Purpose | Change Required | Complexity |
+|----------------|---------|-----------------|------------|
+| {path} | {what it does} | {what to change} | Low/Med/High |
+
 ## 9. Missing Requirements Checklist
 
-- [ ] {missing item 1}
-- [ ] {missing item 2}
-- [ ] {missing item 3}
+| Requirement Area | Status | Notes |
+|------------------|--------|-------|
+| Happy path defined | Yes/No | |
+| Error scenarios defined | Yes/No | |
+| Edge cases defined | Yes/No | |
+| Permissions defined | Yes/No | |
+| Validation rules defined | Yes/No | |
+| UI/UX defined | Yes/No | |
+| Mobile impact considered | Yes/No | |
+| API changes defined | Yes/No | |
+| Database changes defined | Yes/No | |
+| Migration plan defined | Yes/No | |
+| Rollback plan defined | Yes/No | |
+| Performance requirements defined | Yes/No | |
+| Audit/logging requirements defined | Yes/No | |
 
 ## 10. Risk Assessment
 
-| Risk | Severity | Mitigation |
-|------|----------|------------|
-| {risk} | Red/Yellow/Green | {mitigation strategy} |
+| Risk | Likelihood | Impact | Mitigation |
+|------|------------|--------|------------|
+| {risk} | Low/Med/High | Low/Med/High | {mitigation strategy} |
 
 ## 11. Recommendations
 
@@ -143,12 +179,12 @@ _(Use "N/A -- No external integrations affected" if not applicable)_
 1. {specific, actionable question}
 2. {specific, actionable question}
 
+## 13. Questions for Developers
+
+1. {question about existing implementation}
+2. {question about technical constraints}
+3. {question about integration points}
+
 ---
 
-**Constraints reminder:**
-
-- Max 1000 words
-- Tables over prose
-- Questions must be specific (not generic "please clarify")
-- All 6 scoring dimensions must be evaluated
-- Score >= 7 triggers automatic QA Test Plan + DEV Estimation generation
+**Constraints:** Max 1500 words · Tables over prose · Specific questions only

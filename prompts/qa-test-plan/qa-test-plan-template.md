@@ -12,11 +12,33 @@ This template defines the structure and format for QA test planning documents ba
 
 | Constraint | Value | Enforcement |
 |------------|-------|-------------|
-| **Maximum Word Count** | **1000 words** | MANDATORY - Use tables, not paragraphs. Be concise. |
-| **Prerequisites** | **Requirements completeness >= 7/10** | Only generate if requirements are sufficiently complete |
-| **Test Automation Analysis** | **ALL applicable frameworks** | Playwright E2E and Mobile WebdriverIO - analyze all existing tests |
+| **Word Count** | **No hard cap — aim for conciseness** | Use tables over prose. See per-section budgets below. |
+| **Prerequisites** | **Requirements completeness >= 7/10** | Only generate if requirements are sufficiently complete (scored per `requirements-analysis-template.md` rubric) |
+| **Test Automation Analysis** | **ALL applicable frameworks** | Selenium (Python), Playwright (TypeScript), and Mobile (WebdriverIO) — analyze all existing tests |
 | **Effort Estimates** | **Detailed task-level** | Specific hours per test scenario/automation change |
-| **Format** | **Tables > Prose** | Use tables for test cases, not Gherkin blocks |
+| **Format** | **Tables for data, Given/When/Then for test cases** | Test scenarios use Gherkin; everything else uses tables |
+
+### Per-Section Word Budgets (Soft Targets)
+
+| Section | Budget | Notes |
+|---------|--------|-------|
+| 1. Test Scope Summary | ~100 words | Prose-light, bullet points |
+| 2. Manual Test Scenarios | No limit | Gherkin format, as many scenarios as needed |
+| 3. Test Automation Analysis | No limit | Table-heavy, tables don't inflate word count meaningfully |
+| 4. Test Data Requirements | ~150 words | Checklists and tables |
+| 5. Test Environment | ~100 words | Checklists |
+| 6. Test Execution Strategy | ~100 words | Tables |
+| 7. QA Effort Estimates | No limit | Tables with line-item estimates |
+| 8. Test Risks | ~100 words | Table |
+| 9. Entry & Exit Criteria | ~100 words | Checklists |
+| 10-11. Deliverables & Sign-off | ~50 words | Checklists, boilerplate |
+
+### Prerequisites: Requirements Completeness Check
+
+The 7/10 threshold is scored using the rubric in `requirements-analysis-template.md`. If the requirements analysis document does not exist or has not been generated:
+- Set **Test Readiness** to `Blocked`
+- List the missing document as a blocker in Section 8 (Risks)
+- Do NOT generate the test plan until requirements are scored
 
 ---
 
@@ -28,12 +50,13 @@ This template defines the structure and format for QA test planning documents ba
 **Ticket:** [TICKET-ID]
 **Requirements Reference:** `[TICKET-ID]-requirements-analysis.md`
 **Test Plan Created By:** [QA Analyst Name]
-**Date:** YYYY-MM-DD
+**Date Created:** YYYY-MM-DD
 **Test Readiness:** Ready | Waiting for Clarification | Blocked
+**RCA Reference:** `reports/bugfix-rca/[TICKET-ID]_Root_Cause_Analysis.md` _(if applicable — omit if no RCA exists)_
 
 ---
 
-## 1. Test Scope Summary (Max 100 words)
+## 1. Test Scope Summary _(~100 words)_
 
 **Features to Test:**
 - [Feature/functionality 1]
@@ -80,7 +103,9 @@ This template defines the structure and format for QA test planning documents ba
 
 ### 2.2 Edge Case Tests
 
-**Based on historical bugfix analysis: 28% of hotfixes were edge cases**
+**Based on historical bugfix analysis, edge cases are the #1 hotfix pattern (see `context/historical-bugfix-patterns.md` for repo-specific %)**
+
+> _If an RCA report exists for this ticket, derive edge cases from the pattern match and 5 Whys findings._
 
 #### Test Case 3: [Null/Empty State]
 **Given** [empty patient list / null allergy record / no prescription history]
@@ -146,6 +171,8 @@ This template defines the structure and format for QA test planning documents ba
 
 ### 2.4 Exploratory Test Areas
 
+> _Derive exploratory areas from: (1) integration points identified in requirements, (2) historical bugfix patterns for this module (see CLAUDE.md pattern tables), (3) any TODO/FIXME found in code review._
+
 **Areas requiring exploratory testing:**
 - [ ] [Area 1 - e.g., Complex patient workflows across multiple screens]
 - [ ] [Area 2 - e.g., Integration with external health registries]
@@ -159,20 +186,35 @@ This template defines the structure and format for QA test planning documents ba
 
 **CRITICAL: Analyze ALL applicable test automation frameworks**
 
-### 3.1 Playwright E2E Tests (TypeScript)
+Consult `context/e2e-test-coverage-map.md` to determine which frameworks are in scope for the affected functional area. The coverage map contains: Quick Reference Table (functional area -> framework), Detailed tables per framework (Module, Test Folder, Key Test Files, Search Keywords), and standardized Coverage Status Definitions (Full/Partial/Gap/N/A).
 
-**Repository:** `HealthBridge-E2E-Tests/`
+### 3.1 Selenium Tests (Python)
+
+**Repository:** `HealthBridge-Selenium-Tests/`
+**Covers:** Prescriptions, Patient Records, Insurance Claims, Billing (see coverage map for full list)
 
 **Search Strategy:**
-- Search for feature-related test files in `tests/` directory
-- Check page objects in `pages/` directory
-- Review test scenarios in spec files
+- Search for feature-related test files across ALL test directories
+- Use keyword-first search (do NOT limit to a single subdirectory)
+
+```
+Grep pattern: "<feature-keyword>" path: "HealthBridge-Selenium-Tests" glob: "*.py"
+```
+
+#### Selenium Applicability Check
+
+**Does the coverage map include this functional area for Selenium?**
+- [ ] YES - Functional area is in Selenium scope, needs testing
+- [ ] PARTIAL - Some aspects covered by Selenium, others not
+- [ ] NO - Outside Selenium scope (skip to next framework)
+
+**If YES or PARTIAL:**
 
 #### Tests to UPDATE
 
 | Test File | Test Name | Current Behavior | Required Change | Priority | Estimate |
 |-----------|-----------|------------------|-----------------|----------|----------|
-| [path/file.spec.ts] | [test name] | [What it currently tests] | [What needs to change] | Critical/High/Med | [X.Xh] |
+| [path/file.py] | [test name] | [What it currently tests] | [What needs to change] | Critical/High/Medium | [X.Xh] |
 
 **Update Subtotal:** [X.X hours]
 
@@ -180,7 +222,7 @@ This template defines the structure and format for QA test planning documents ba
 
 | Test File | Test Name | Reason for Deletion | Priority | Estimate |
 |-----------|-----------|---------------------|----------|----------|
-| [path/file.spec.ts] | [test name] | [Why - e.g., obsolete feature, duplicate test] | High/Med | [X.Xh] |
+| [path/file.py] | [test name] | [Why - e.g., obsolete feature, duplicate test] | High/Medium | [X.Xh] |
 
 **Delete Subtotal:** [X.X hours]
 
@@ -188,8 +230,68 @@ This template defines the structure and format for QA test planning documents ba
 
 | Test Scenario | Test File (new/existing) | Test Name | Description | Priority | Estimate |
 |---------------|--------------------------|-----------|-------------|----------|----------|
-| [What to test] | [Where to add] | [test name] | [What the test does] | Critical/High/Med | [X.Xh] |
-| Example: Renew prescription | `prescriptions.spec.ts` | `should renew prescription with dosage validation` | Verify renewal creates new prescription, validates dosage | Critical | 1.5h |
+| [What to test] | [Where to add] | [test name] | [What the test does] | Critical/High/Medium | [X.Xh] |
+
+**Add Subtotal:** [X.X hours]
+
+#### Selenium Test Coverage Assessment
+
+**Existing Coverage:** [Percentage or description]
+
+**Gaps Identified:**
+- [ ] [Gap 1]
+- [ ] [Gap 2]
+
+**Selenium Total Estimate:** [Update + Delete + Add = X.X hours]
+
+---
+
+### 3.2 Playwright E2E Tests (TypeScript)
+
+**Repository:** `HealthBridge-E2E-Tests/`
+**Covers:** Appointments, Scheduling, Lab Results, Staff Scheduling (see coverage map for full list)
+
+**Search Strategy:**
+- Search for feature-related test files in `tests/` directory
+- Check page objects in `pages/` directory
+- Review test scenarios in spec files
+
+```
+Grep pattern: "<feature-keyword>" path: "HealthBridge-E2E-Tests" glob: "*.spec.ts"
+Glob pattern: "**/<feature>*.spec.ts" path: "HealthBridge-E2E-Tests"
+```
+
+#### Playwright Applicability Check
+
+**Does the coverage map include this functional area for Playwright?**
+- [ ] YES - Functional area is in Playwright scope, needs testing
+- [ ] PARTIAL - Some aspects covered by Playwright, others not
+- [ ] NO - Outside Playwright scope (skip to next framework)
+
+**If YES or PARTIAL:**
+
+#### Tests to UPDATE
+
+| Test File | Test Name | Current Behavior | Required Change | Priority | Estimate |
+|-----------|-----------|------------------|-----------------|----------|----------|
+| [path/file.spec.ts] | [test name] | [What it currently tests] | [What needs to change] | Critical/High/Medium | [X.Xh] |
+
+**Update Subtotal:** [X.X hours]
+
+#### Tests to DELETE
+
+| Test File | Test Name | Reason for Deletion | Priority | Estimate |
+|-----------|-----------|---------------------|----------|----------|
+| [path/file.spec.ts] | [test name] | [Why - e.g., obsolete feature, duplicate test] | High/Medium | [X.Xh] |
+
+**Delete Subtotal:** [X.X hours]
+
+#### Tests to ADD
+
+| Test Scenario | Test File (new/existing) | Test Name | Description | Priority | Estimate |
+|---------------|--------------------------|-----------|-------------|----------|----------|
+| [What to test] | [Where to add] | [test name] | [What the test does] | Critical/High/Medium | [X.Xh] |
+| Example: Book appointment | `appointments.spec.ts` | `should book appointment with date validation` | Verify booking creates appointment, validates date conflicts | Critical | 1.5h |
 
 **Add Subtotal:** [X.X hours]
 
@@ -205,18 +307,24 @@ This template defines the structure and format for QA test planning documents ba
 
 ---
 
-### 3.2 Mobile Tests (WebdriverIO)
+### 3.3 Mobile Tests (WebdriverIO)
 
 **Repository:** `HealthBridge-Mobile-Tests/`
+**Covers:** Prescriptions (approval), Appointments, Lab Results (viewing), Reimbursements (see coverage map for full list)
 
 **Search Strategy:**
 - Search for feature-related test files in `test/` directory
 - Check if mobile app includes this feature
 - Review existing mobile test coverage
 
+```
+Grep pattern: "<feature-keyword>" path: "HealthBridge-Mobile-Tests" glob: "*.js"
+Glob pattern: "**/<feature>*.js" path: "HealthBridge-Mobile-Tests"
+```
+
 #### Mobile Applicability Check
 
-**Is this feature available in the mobile app?**
+**Does the coverage map include this functional area for Mobile?**
 - [ ] YES - Feature exists in mobile, needs testing
 - [ ] PARTIAL - Some aspects in mobile, some web-only
 - [ ] NO - Web-only feature, mobile out of scope
@@ -227,7 +335,7 @@ This template defines the structure and format for QA test planning documents ba
 
 | Test File | Test Name | Current Behavior | Required Change | Priority | Estimate |
 |-----------|-----------|------------------|-----------------|----------|----------|
-| [path/file.js] | [test name] | [What it currently tests] | [What needs to change] | Critical/High/Med | [X.Xh] |
+| [path/file.js] | [test name] | [What it currently tests] | [What needs to change] | Critical/High/Medium | [X.Xh] |
 
 **Update Subtotal:** [X.X hours]
 
@@ -235,7 +343,7 @@ This template defines the structure and format for QA test planning documents ba
 
 | Test File | Test Name | Reason for Deletion | Priority | Estimate |
 |-----------|-----------|---------------------|----------|----------|
-| [path/file.js] | [test name] | [Why] | High/Med | [X.Xh] |
+| [path/file.js] | [test name] | [Why] | High/Medium | [X.Xh] |
 
 **Delete Subtotal:** [X.X hours]
 
@@ -243,7 +351,7 @@ This template defines the structure and format for QA test planning documents ba
 
 | Test Scenario | Test File (new/existing) | Test Name | Description | Priority | Estimate |
 |---------------|--------------------------|-----------|-------------|----------|----------|
-| [What to test] | [Where to add] | [test name] | [What the test does] | Critical/High/Med | [X.Xh] |
+| [What to test] | [Where to add] | [test name] | [What the test does] | Critical/High/Medium | [X.Xh] |
 
 **Add Subtotal:** [X.X hours]
 
@@ -259,10 +367,11 @@ This template defines the structure and format for QA test planning documents ba
 
 ---
 
-### 3.3 Test Automation Summary
+### 3.4 Test Automation Summary
 
 | Framework | Update | Delete | Add | Total |
 |-----------|--------|--------|-----|-------|
+| **Selenium (Python)** | [X.X]h | [X.X]h | [X.X]h | [X.X]h |
 | **Playwright (TS)** | [X.X]h | [X.X]h | [X.X]h | [X.X]h |
 | **Mobile (WDIO)** | [X.X]h | [X.X]h | [X.X]h | [X.X]h |
 | **TOTAL** | [X.X]h | [X.X]h | [X.X]h | **[X.X]h** |
@@ -274,7 +383,7 @@ This template defines the structure and format for QA test planning documents ba
 
 ---
 
-## 4. Test Data Requirements
+## 4. Test Data Requirements _(~150 words)_
 
 ### 4.1 Test Environments
 
@@ -312,7 +421,7 @@ This template defines the structure and format for QA test planning documents ba
 
 ---
 
-## 5. Test Environment & Configuration
+## 5. Test Environment & Configuration _(~100 words)_
 
 ### 5.1 Environment Setup
 
@@ -342,10 +451,10 @@ This template defines the structure and format for QA test planning documents ba
 ### 5.3 Browser/Device Coverage
 
 **Web Testing:**
-- [ ] Chrome (latest)
-- [ ] Firefox (latest)
-- [ ] Safari (if macOS-specific features)
-- [ ] Edge (if enterprise clinic customers use it)
+- [ ] Chrome (latest) — always required
+- [ ] Firefox (latest) — always required
+- [ ] Safari — check if any CSS/layout changes or macOS-specific features are in scope
+- [ ] Edge — check if ticket affects admin portal used by enterprise clinic customers
 
 **Mobile Testing:**
 - [ ] iOS (version X.X+)
@@ -353,7 +462,7 @@ This template defines the structure and format for QA test planning documents ba
 
 ---
 
-## 6. Test Execution Strategy
+## 6. Test Execution Strategy _(~100 words)_
 
 ### 6.1 Test Phases
 
@@ -378,6 +487,8 @@ This template defines the structure and format for QA test planning documents ba
 
 ### 6.2 Test Execution Schedule
 
+> _Derive dates from: Section 7 effort estimates + deployment timeline. Phase 1 starts on staging deployment day. Each subsequent phase starts after the previous phase's duration._
+
 | Phase | Start Date | End Date | Assigned To | Status |
 |-------|-----------|----------|-------------|--------|
 | Phase 1 | [Date] | [Date] | [QA Name] | Pending |
@@ -391,6 +502,8 @@ This template defines the structure and format for QA test planning documents ba
 
 ### 7.1 Manual Testing Effort
 
+> _Calibration: ~0.5h per happy path test, ~0.75h per edge case test, ~1h per error scenario (includes setup, execution, and documentation). Adjust based on feature complexity._
+
 | Activity | Estimate | Notes |
 |----------|----------|-------|
 | **Test Case Execution** | | |
@@ -401,7 +514,6 @@ This template defines the structure and format for QA test planning documents ba
 | **Test Data Setup** | [X.X]h | [What needs to be created] |
 | **Environment Configuration** | [X.X]h | [Feature flags, settings] |
 | **Regression Testing (Manual)** | [X.X]h | [Related features to retest] |
-| **Bug Verification** | [X.X]h | [Buffer for found issues] |
 | **Test Documentation** | [X.X]h | [Update test cases, report] |
 | **MANUAL TESTING SUBTOTAL** | **[X.X]h** | **~[X.X] days** |
 
@@ -409,14 +521,18 @@ This template defines the structure and format for QA test planning documents ba
 
 | Activity | Estimate | Notes |
 |----------|----------|-------|
-| **Playwright Automation** | | |
+| **Selenium Automation** | | |
 | - Update existing tests | [X.X]h | [From section 3.1] |
 | - Delete obsolete tests | [X.X]h | [From section 3.1] |
 | - Add new tests | [X.X]h | [From section 3.1] |
-| **Mobile Automation** | | |
+| **Playwright Automation** | | |
 | - Update existing tests | [X.X]h | [From section 3.2] |
 | - Delete obsolete tests | [X.X]h | [From section 3.2] |
 | - Add new tests | [X.X]h | [From section 3.2] |
+| **Mobile Automation** | | |
+| - Update existing tests | [X.X]h | [From section 3.3] |
+| - Delete obsolete tests | [X.X]h | [From section 3.3] |
+| - Add new tests | [X.X]h | [From section 3.3] |
 | **Test Maintenance** | [X.X]h | [Code review, refactoring] |
 | **CI/CD Pipeline Updates** | [X.X]h | [If pipeline changes needed] |
 | **AUTOMATION SUBTOTAL** | **[X.X]h** | **~[X.X] days** |
@@ -433,7 +549,8 @@ This template defines the structure and format for QA test planning documents ba
 - 1 QA day = 8 hours of focused testing
 - Automation can start when dev completes feature flag
 - Manual testing starts when feature deployed to staging
-- Buffer included for bug fixes and retesting: [+X%]
+
+**Contingency:** Add 15% buffer for bug fixes and retesting on top of the total estimate. This is a risk-based contingency, not a calculated line item.
 
 **Risk Factors:**
 - [ ] Test data complexity: [Low/Medium/High]
@@ -443,17 +560,18 @@ This template defines the structure and format for QA test planning documents ba
 
 ---
 
-## 8. Test Risks & Mitigation
+## 8. Test Risks & Mitigation _(~100 words)_
 
 | Risk | Impact | Probability | Mitigation Strategy | Owner |
 |------|--------|-------------|---------------------|-------|
-| [Risk 1 - e.g., Patient test data unavailable] | High/Med/Low | High/Med/Low | [How to prevent/handle] | [QA Lead] |
-| [Risk 2 - e.g., Staging environment unstable] | High/Med/Low | High/Med/Low | [How to prevent/handle] | [DevOps] |
-| [Risk 3 - e.g., Automated tests flaky] | High/Med/Low | High/Med/Low | [How to prevent/handle] | [QA Automation] |
+| [Risk 1 - e.g., Patient test data unavailable] | High/Medium/Low | High/Medium/Low | [How to prevent/handle] | [QA Lead] |
+| [Risk 2 - e.g., Staging environment unstable] | High/Medium/Low | High/Medium/Low | [How to prevent/handle] | [DevOps] |
+| [Risk 3 - e.g., Automated tests flaky] | High/Medium/Low | High/Medium/Low | [How to prevent/handle] | [QA Automation] |
+| [Risk 4 - e.g., Requirements analysis missing] | High | [Probability] | Set Test Readiness to Blocked, escalate to PO | [QA Lead] |
 
 ---
 
-## 9. Entry & Exit Criteria
+## 9. Entry & Exit Criteria _(~100 words)_
 
 ### 9.1 Entry Criteria (Ready to Test)
 
@@ -474,7 +592,7 @@ This template defines the structure and format for QA test planning documents ba
 
 **Manual Testing:**
 - [ ] All P1/P2 test cases executed
-- [ ] Pass rate >= [X]% (e.g., 95%)
+- [ ] Pass rate >= 95% for P1/P2 tests, >= 85% overall (adjust per ticket risk level)
 - [ ] All critical bugs fixed and verified
 - [ ] Regression testing passed
 - [ ] Test summary report completed
@@ -483,7 +601,7 @@ This template defines the structure and format for QA test planning documents ba
 - [ ] All test updates completed and merged
 - [ ] New tests added and passing
 - [ ] Obsolete tests removed
-- [ ] CI/CD pipeline green (>= [X]% pass rate)
+- [ ] CI/CD pipeline green (>= 90% pass rate, adjust per ticket risk level)
 - [ ] Code review approved
 
 ---
@@ -517,8 +635,7 @@ This template defines the structure and format for QA test planning documents ba
 
 ---
 
-**Word Count:** XXX/1000 words
-**Test Plan Completed:** YYYY-MM-DD
+**Date Completed:** YYYY-MM-DD
 **QA Analyst:** [Name]
 **Review Status:** [ ] Reviewed | [ ] Approved | [ ] In Testing | [ ] Complete
 ```
@@ -529,27 +646,28 @@ This template defines the structure and format for QA test planning documents ba
 
 ### When to Use This Template
 
-1. **After Requirements Analysis** - When requirements completeness >= 7/10
+1. **After Requirements Analysis** - When requirements completeness >= 7/10 (scored per `requirements-analysis-template.md`)
 2. **Before Development Starts** - For test-first approach
 3. **During Sprint Planning** - To estimate QA effort accurately
 
 ### How to Fill It Out
 
-1. **Reference Requirements Analysis** - Link to the requirements document
-2. **Search Test Repositories** - Use `Grep` and `Glob` tools to find existing tests
-3. **Be Specific** - Exact file paths, method names, line numbers
-4. **Realistic Estimates** - Based on similar past work
-5. **Include Buffer** - Add 20% for unknowns and bug fixing
+1. **Reference Requirements Analysis** - Link to the requirements document. If it doesn't exist, set Test Readiness to Blocked.
+2. **Check Coverage Map** - Read `context/e2e-test-coverage-map.md` to determine which frameworks apply
+3. **Search Test Repositories** - Use `Grep` and `Glob` tools to find existing tests
+4. **Be Specific** - Exact file paths, method names, line numbers
+5. **Realistic Estimates** - Based on similar past work
+6. **Include Contingency** - 15% buffer for unknowns and bug fixing (in Section 7.3)
 
 ### Quality Checklist
 
-- [ ] All applicable test automation frameworks analyzed (Playwright, Mobile)
+- [ ] All applicable test automation frameworks analyzed (Selenium, Playwright, Mobile)
+- [ ] Coverage map consulted to determine framework applicability
 - [ ] Existing tests searched using Grep/Glob tools
 - [ ] Specific file paths and method names provided
 - [ ] Effort estimates are detailed (task-level, not feature-level)
 - [ ] Test data requirements documented
 - [ ] Entry/exit criteria defined
-- [ ] Word count <= 1000 words
 - [ ] Cross-referenced with requirements analysis document
 
 ---
@@ -557,6 +675,12 @@ This template defines the structure and format for QA test planning documents ba
 ## Test Automation Analysis Tips
 
 ### Effective Search Strategies
+
+**Selenium (Python):**
+```
+Grep pattern: "prescription|medication" path: "HealthBridge-Selenium-Tests" glob: "*.py"
+Glob pattern: "**/prescription*.py" path: "HealthBridge-Selenium-Tests"
+```
 
 **Playwright (TypeScript):**
 ```
@@ -595,8 +719,8 @@ Adjust based on:
 
 ---
 
-**Template Version:** 1.0
-**Created:** 2026-02-27
+**Template Version:** 1.2
+**Last Updated:** 2026-03-05
 **Related Templates:**
-- `requirements-analysis-template.md` (prerequisite)
+- `requirements-analysis-template.md` (prerequisite — contains 7/10 scoring rubric)
 - `dev-estimation-template.md` (companion)

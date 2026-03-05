@@ -15,7 +15,7 @@ Generate concise, actionable Slack notifications for release assessments.
 
 | Constraint | Value |
 |------------|-------|
-| **Target Length** | 250-350 words |
+| **Target Length** | 300-400 words |
 | **Maximum Length** | 500 words |
 | **Format** | Slack markdown (bold, bullets, emojis) |
 | **Tone** | Professional, direct, action-oriented |
@@ -57,11 +57,11 @@ Generate concise, actionable Slack notifications for release assessments.
 ## E2E REGRESSION COVERAGE
 
 **Impacted Areas:** [X total areas affected by this release]
-**E2E Coverage:** [X/Y areas covered] = [XX]%
+**E2E Coverage (this release):** [X/Y impacted areas covered] = [XX]%
 
 **Covered Areas:**
-- [Area 1] - [Framework: Playwright/Mobile]
-- [Area 2] - [Framework: Playwright/Mobile]
+- [Area 1] - [Framework: Selenium/Playwright/Mobile]
+- [Area 2] - [Framework: Selenium/Playwright/Mobile]
 
 **Gaps (Manual Testing Required):**
 - [Area 3] - No E2E tests
@@ -84,7 +84,7 @@ Generate concise, actionable Slack notifications for release assessments.
 
 ## RECOMMENDATION
 
-[Ready for Release | Conditional Release | Delay Recommended]
+[GO | CONDITIONAL GO | NO-GO]
 
 **Action Required:**
 - [ ] [Specific action 1]
@@ -100,32 +100,34 @@ Generate concise, actionable Slack notifications for release assessments.
 
 ---
 
+## Recommendation Decision Criteria
+
+| Condition | Recommendation |
+|-----------|---------------|
+| 0 Critical PRs AND E2E coverage >= 70% | **GO** |
+| 0 Critical PRs AND (coverage 50-69% OR 1-2 unresolved Medium PRs) | **CONDITIONAL GO** |
+| 1+ Critical PRs OR coverage < 50% with patient-safety impact | **NO-GO** |
+
+---
+
 ## Coverage Calculation Method
 
 ### E2E Regression Coverage for Impacted Areas
 
-**Purpose:** Measure how many functional areas affected by this release are covered by existing E2E regression tests.
+**Purpose:** Measure how many functional areas affected by **this release** are covered by existing E2E regression tests. This is a release-scoped metric, not overall product E2E coverage.
 
 **Formula:**
 ```
-E2E Regression Coverage = (Areas with E2E tests / Total impacted areas) x 100
+E2E Regression Coverage = (Fully covered + 0.5 x Partially covered) / Total impacted areas
 ```
 
 **Steps:**
 
-1. **Identify Impacted Areas** - Map each PR to functional area(s):
-   - Prescriptions (medication processing, drug interactions, dosage calculations)
-   - Patient Records (charts, admissions, discharges, vitals)
-   - Appointments (scheduling, calendar, reminders)
-   - Lab Results (diagnostics, test orders, result reporting)
-   - Billing (insurance claims, payments, coverage)
-   - Staff Management (scheduling, departments, roles)
-   - Security (authentication, authorization)
-   - Mobile (mobile-specific features)
+1. **Identify Impacted Areas** — Map each PR to functional area(s) using `context/e2e-test-coverage-map.md`
 
-2. **Check E2E Test Coverage** - For each impacted area, check if E2E tests exist:
-   - **Covered:** E2E tests exist (Playwright/Mobile)
-   - **Partially Covered:** Some tests exist but gaps identified
+2. **Check E2E Test Coverage** — For each impacted area, check if E2E tests exist:
+   - **Covered:** E2E tests exist in 2+ frameworks (Selenium/Playwright/Mobile)
+   - **Partially Covered:** Tests exist in 1 framework only
    - **No Coverage:** No E2E tests for this area
 
 3. **Calculate Coverage:**
@@ -136,7 +138,7 @@ E2E Regression Coverage = (Areas with E2E tests / Total impacted areas) x 100
 **Example:**
 ```
 Impacted Areas (7 total):
-- Prescriptions - Drug Interactions (Playwright: prescriptions.spec.ts) -- Covered
+- Prescriptions - Drug Interactions (Selenium: PrescriptionWorkflowTests.cs) -- Covered
 - Patient Records - Discharge (No E2E) -- No Coverage
 - Appointments - Reminders (Playwright: scheduling.spec.ts) -- Covered
 - Lab Results - Reporting (No E2E) -- No Coverage
@@ -169,7 +171,7 @@ Coverage = (3 + 0.5 x 1) / 7 = 3.5 / 7 = 50% -- Acceptable
 
 ### DO
 
-- Start with positive highlights (3-5 items)
+- Start with positive highlights (3-5 items) — select by: (1) business/patient impact, (2) items linked to a ticket ID, (3) features the team has been waiting for. Do not include infrastructure or internal items.
 - Use specific ticket IDs (HM-XXXXX)
 - Quantify risks (number of PRs affected)
 - Provide actionable next steps
@@ -185,7 +187,7 @@ Coverage = (3 + 0.5 x 1) / 7 = 3.5 / 7 = 50% -- Acceptable
 - List every single PR (focus on highlights + risks)
 - Exceed 500 words
 - Use jargon without context
-- **Include time estimates** (e.g., "12-16h", "4-6h") - Focus on what needs to be done, not how long
+- **Include time estimates in Slack messages** (e.g., "12-16h", "4-6h") - Focus on what needs to be done, not how long. Effort estimates belong in the full risk assessment report (Section 4.5) only.
 
 ---
 
@@ -229,7 +231,7 @@ Coverage = (3 + 0.5 x 1) / 7 = 3.5 / 7 = 50% -- Acceptable
 **E2E Coverage:** 4/5 areas covered = 80%
 
 **Covered Areas:**
-- Prescriptions - Refill workflow - Playwright (prescriptions.spec.ts)
+- Prescriptions - Refill workflow - Selenium (PrescriptionWorkflowTests.cs)
 - Lab Results - Trending - Playwright (lab-results.spec.ts)
 - Appointments - Reminders - Playwright (scheduling.spec.ts)
 - Authentication - MFA - Playwright (auth.spec.ts)
@@ -248,7 +250,7 @@ Coverage = (3 + 0.5 x 1) / 7 = 3.5 / 7 = 50% -- Acceptable
 
 ## RECOMMENDATION
 
-**Ready for Release**
+**GO**
 
 **Action Required:**
 - [ ] Complete manual load testing for HM-14280
@@ -303,7 +305,7 @@ Coverage = (3 + 0.5 x 1) / 7 = 3.5 / 7 = 50% -- Acceptable
 **E2E Coverage:** 2/7 areas covered = 29%
 
 **Covered Areas:**
-- Prescriptions - Refill - Playwright (prescriptions.spec.ts)
+- Prescriptions - Refill - Selenium (PrescriptionWorkflowTests.cs)
 - Authentication - MFA - Playwright (auth.spec.ts)
 
 **Gaps (Manual Testing Required):**
@@ -326,7 +328,7 @@ Coverage = (3 + 0.5 x 1) / 7 = 3.5 / 7 = 50% -- Acceptable
 
 ## RECOMMENDATION
 
-**DELAY RECOMMENDED**
+**NO-GO**
 
 **Action Required (BEFORE RELEASE):**
 - [ ] **HM-14399:** Add security E2E tests
@@ -342,11 +344,84 @@ Coverage = (3 + 0.5 x 1) / 7 = 3.5 / 7 = 50% -- Acceptable
 
 ---
 
+### Example 3: Medium Risk (Conditional GO)
+
+```
+**Release-04/2026 Release Assessment**
+
+**Repository:** HealthBridge-Web
+**Planned Release:** Jan 21, 2026
+**PRs:** 12 | **Files:** 45 (+2,100/-900)
+**Overall Risk:** Medium
+
+---
+
+## HIGHLIGHTS
+
+- **HM-14200:** Prescription refill automation - Streamlined recurring medication workflow
+- **HM-14150:** Appointment reminder SMS - Automated patient notifications
+- **HM-14310:** Lab result export - New PDF export for patient records
+
+---
+
+## RISKS & GAPS
+
+**Critical:** 0 PR(s)
+**Medium:** 3 PR(s) - Manual testing required
+**Low:** 9 PR(s) - Ready to go
+
+**Key Issues:**
+- **HM-14220:** Complex insurance claim logic with partial E2E coverage
+- **HM-14285:** New patient discharge workflow without E2E tests
+
+---
+
+## E2E REGRESSION COVERAGE
+
+**Impacted Areas:** 5 total
+**E2E Coverage (this release):** 3/5 impacted areas covered = 60%
+
+**Covered Areas:**
+- Prescriptions - Refill workflow - Selenium (PrescriptionWorkflowTests.cs)
+- Appointments - Reminders - Playwright (scheduling.spec.ts)
+- Lab Results - Export - Playwright (lab-results.spec.ts)
+
+**Gaps (Manual Testing Required):**
+- Insurance Claims - Multi-provider billing - No E2E tests
+- Patient Records - Discharge workflow - No E2E tests
+
+---
+
+## MANUAL TESTING REQUIRED
+
+- **HM-14220:** Multi-provider insurance claim scenarios - High
+- **HM-14285:** Patient discharge with pending lab results - High
+
+---
+
+## RECOMMENDATION
+
+**CONDITIONAL GO**
+
+**Conditions (must complete before release):**
+- [ ] Manual test insurance claim edge cases for HM-14220
+- [ ] Manual test discharge workflow for HM-14285
+- [ ] Verify no regressions in patient records module
+
+---
+
+**Full Report:** `reports/week-release/Release-04-2026-Risk-Assessment.md`
+
+*Generated: 2026-01-20 14:30*
+```
+
+---
+
 ## File Naming Convention
 
 **Location:** `reports/week-release/`
 
-**Naming Pattern:** `Release-[XX]-[YYYY]-Slack-Message.md`
+**Naming Pattern:** `Release-<XX>-<YYYY>-Slack-Message.md`
 
 **Examples:**
 - `Release-04-2026-Slack-Message.md`
@@ -354,23 +429,18 @@ Coverage = (3 + 0.5 x 1) / 7 = 3.5 / 7 = 50% -- Acceptable
 
 ---
 
-## Integration with Release Assessment Agent
+## Integration with Release Analysis Agent
 
-The Slack message generator is spawned as a sub-agent after the main risk assessment is complete.
+The Slack message is generated by the release analysis agent as Report 3 in the same execution run as the risk assessment and release notes — not as a separate sub-agent spawn.
 
 **Workflow:**
-1. Main agent analyzes all PRs -> generates full risk assessment report
-2. Main agent spawns Slack Message Generator sub-agent
-3. Sub-agent reads full report -> extracts key metrics -> generates Slack message
-4. Both files saved to `reports/week-release/`
-
-**Input to sub-agent:**
-- Full risk assessment markdown report
-- PR summary data
-- Test coverage analysis results
+1. Release analysis agent analyzes all PRs -> generates risk assessment (Report 1)
+2. Agent generates release notes (Report 2)
+3. Agent generates Slack message (Report 3) using the same PR analysis data
+4. All three files saved to `reports/week-release/`
 
 **Output:**
-- Concise Slack message (250-500 words)
+- Concise Slack message (max 300 words)
 - Saved as separate `.md` file
 - Can be copy-pasted directly to Slack
 

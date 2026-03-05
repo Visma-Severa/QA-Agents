@@ -77,12 +77,13 @@ These commands work on Windows (with Git Bash), macOS, and Linux:
 
 | Agent | Purpose | Invoke With | Details |
 |-------|---------|-------------|---------|
-| **Code Review** | Analyze PR/branch for code quality, test gaps, risks | `@hb-qa-code-review` | [qa-code-review.md](../agents/vscode-chat-participants/qa-code-review.md) |
-| **Acceptance Tests** | Generate Given/When/Then test scenarios | `@hb-qa-acceptance-tests` | [qa-acceptance-tests.md](../agents/vscode-chat-participants/qa-acceptance-tests.md) |
-| **Bug Report** | Analyze errors and generate ticket-ready bug reports | `@hb-qa-bug-report` | [qa-bug-report.md](../agents/vscode-chat-participants/qa-bug-report.md) |
+| **Code Review** | Analyze PR/branch for code quality, test gaps, risks | `@hb-code-review` | [code-review.md](../agents/vscode-chat-participants/code-review.md) |
+| **Acceptance Tests** | Generate Given/When/Then test scenarios | `@hb-acceptance-tests` | [acceptance-tests.md](../agents/vscode-chat-participants/acceptance-tests.md) |
+| **Bug Report** | Analyze errors and generate ticket-ready bug reports | `@hb-bug-report` | [bug-report.md](../agents/vscode-chat-participants/bug-report.md) |
 | **Bugfix RCA** | Root cause analysis for hotfixes | `@hb-bugfix-rca` | [bugfix-rca.md](../agents/vscode-chat-participants/bugfix-rca.md) |
 | **Requirements Analysis** | Pre-development requirements validation | `@hb-requirements-analysis` | [requirements-analysis.md](../agents/vscode-chat-participants/requirements-analysis.md) |
-| **Release Analysis** | Analyze weekly releases for risk and coverage | `@hb-release-analysis` | [release-analysis.md](../agents/vscode-chat-participants/release-analysis.md) |
+| **Release Analysis** | Analyze releases for risk and coverage | `@hb-release-analysis` | [release-analysis.md](../agents/vscode-chat-participants/release-analysis.md) |
+| **Feedback** | Interactive developer feedback on code review findings | `@hb-feedback` | [feedback.md](../agents/vscode-chat-participants/feedback.md) |
 
 ### Predictive Code Analysis
 
@@ -147,10 +148,10 @@ Use these keywords to infer document type (but still confirm if ambiguous):
 
 | Keywords in Request | Likely Document Type | Agent to Use |
 |---------------------|---------------------|--------------|
-| "bug", "issue", "error", "not working", "broken" | Bug Report | `@hb-qa-bug-report` |
+| "bug", "issue", "error", "not working", "broken" | Bug Report | `@hb-bug-report` |
 | "requirement", "task", "implement", "feature", "user story" | Requirements Analysis | `@hb-requirements-analysis` |
-| "review", "PR", "branch", "code quality" | Code Review | `@hb-qa-code-review` |
-| "test", "acceptance", "scenario", "QA" | Acceptance Test Plan | `@hb-qa-acceptance-tests` |
+| "review", "PR", "branch", "code quality" | Code Review | `@hb-code-review` |
+| "test", "acceptance", "scenario", "QA" | Acceptance Test Plan | `@hb-acceptance-tests` |
 | "hotfix", "RCA", "root cause", "why did this break" | Bugfix RCA | `@hb-bugfix-rca` |
 | "release", "Release-", "deployment" | Release Analysis | `@hb-release-analysis` |
 
@@ -335,7 +336,7 @@ cd ../HealthBridge-Mobile-Tests && git fetch origin
 **Then search on remote tracking branch:**
 ```bash
 # Search in latest main without checking it out
-cd ../HealthBridge-Selenium-Tests && git grep -n "<keyword>" origin/main -- "*.cs"
+cd ../HealthBridge-Selenium-Tests && git grep -n "<keyword>" origin/main -- "*.py"
 ```
 
 **Report to user:** "Fetched latest from E2E test repositories"
@@ -371,13 +372,13 @@ After fetching latest, search on remote tracking branch:
 
 ```bash
 # Search across ALL test directories in latest main
-cd ../HealthBridge-Selenium-Tests && git grep -n "<keyword>" origin/main -- "*.cs"
+cd ../HealthBridge-Selenium-Tests && git grep -n "<keyword>" origin/main -- "*.py"
 ```
 
 Or use Claude Code's `Grep` tool on local files (searches current working tree):
 
 ```
-Grep pattern: "<keyword>" path: "HealthBridge-Selenium-Tests" glob: "*.cs"
+Grep pattern: "<keyword>" path: "HealthBridge-Selenium-Tests" glob: "*.py"
 ```
 
 **Do NOT limit search to specific subdirectories initially.**
@@ -528,15 +529,18 @@ DEV Estimation  ->  <TICKET-ID>-dev-estimation.md
 | Document Type | Word Limit | Output Location |
 |---------------|------------|-----------------|
 | Code Review Report | 1300 words | `reports/code-review/<TICKET-ID>-code-review.md` |
+| Code Review Brief | 450 words | `reports/code-review/<TICKET-ID>-code-review-brief.md` |
 | Code Review Deep Analysis | No limit | `reports/code-review/<TICKET-ID>-findings-detailed.md` |
 | Code Review Feedback | N/A (JSON) | `reports/feedback/<TICKET-ID>-feedback.json` |
-| Acceptance Tests (standalone) | No limit | `reports/acceptance-tests/<TICKET-ID>-acceptance-tests.md` |
-| Requirements Analysis | 1000 words | `reports/requirements-analysis/<TICKET-ID>-requirements-analysis.md` |
+| Acceptance Tests | No limit | `reports/acceptance-tests/<TICKET-ID>-acceptance-tests.md` |
+| Requirements Analysis | 1500 words | `reports/requirements-analysis/<TICKET-ID>-requirements-analysis.md` |
 | QA Test Plan (from workflow) | 1000 words | `reports/requirements-analysis/<TICKET-ID>-qa-test-plan.md` |
 | Dev Estimation (from workflow) | 800 words | `reports/requirements-analysis/<TICKET-ID>-dev-estimation.md` |
-| Bug Report | 600 words | `reports/bug-reports/<TICKET-ID>-bug-report.md` |
-| Bugfix RCA | 800 words | `reports/bugfix-rca/<TICKET-ID>-rca.md` |
-| Release Risk Assessment | 1500 words | `reports/week-release/<RELEASE-NAME>-risk.md` |
+| Bug Report | 900 words | `reports/bug-reports/<TICKET-ID>-bug-report.md` |
+| Bugfix RCA | 1500 words | `reports/bugfix-rca/<TICKET-ID>-rca.md` |
+| Release Risk Assessment | 1500 words | `reports/week-release/Release-XX-YYYY-Risk-Assessment.md` |
+| Release Notes | No limit | `reports/week-release/Release-XX-YYYY-Release-Notes.md` |
+| Slack Message | 300 words | `reports/week-release/Release-XX-YYYY-Slack-Message.md` |
 
 ---
 

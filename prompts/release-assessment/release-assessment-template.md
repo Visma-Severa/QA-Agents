@@ -6,7 +6,7 @@ This template defines the structure and format for release risk assessment repor
 
 | Constraint | Value | Enforcement |
 |------------|-------|-------------|
-| **Maximum Word Count** | **2000 words** | MANDATORY - Use concise language, remove verbose explanations |
+| **Maximum Word Count** | **1500-2000 words** | HARD FAIL if exceeded. After displaying word count breakdown, wait for user instruction. Do not auto-regenerate. |
 | **Section 2 vs 3.3** | NO DUPLICATION | Section 2 = summary table only, Section 3.3 = detailed findings |
 | **Focus** | HIGH-RISK ITEMS ONLY | Skip low-risk/config-only PRs in detailed analysis |
 
@@ -66,7 +66,7 @@ This template defines the structure and format for release risk assessment repor
 | HM-XXXXX | MM-DD | 5 | Full: Unit + E2E | Low | [10 words max] |
 | HM-XXXXX | MM-DD | 12 | Partial: Unit only | Medium | [10 words max] |
 
-**Legend:** Full | Partial | None | Manual | N/A
+**Legend:** Full | Partial | None | N/A
 
 ---
 
@@ -113,12 +113,12 @@ This template defines the structure and format for release risk assessment repor
 
 **Include EVERY ticket from Section 2.** Group by coverage status for readability.
 
-| Ticket | Feature Area | Playwright Coverage | Mobile Coverage | Overall Status |
-|--------|--------------|---------------------|-----------------|----------------|
-| HM-XXXXX | [e.g., Prescriptions] | Covered | N/A | Partial |
-| HM-XXXXX | [e.g., Appointments] | Covered | Covered | Full |
-| HM-XXXXX | [e.g., Lab Results] | None | Covered | Partial |
-| HM-XXXXX | [e.g., Admin Tool] | N/A | N/A | N/A |
+| Ticket | Feature Area | Selenium Coverage | Playwright Coverage | Mobile Coverage | Overall Status |
+|--------|--------------|-------------------|---------------------|-----------------|----------------|
+| HM-XXXXX | [e.g., Prescriptions] | Covered | None | N/A | Partial |
+| HM-XXXXX | [e.g., Appointments] | None | Covered | Covered | Full |
+| HM-XXXXX | [e.g., Lab Results] | N/A | None | Covered | Partial |
+| HM-XXXXX | [e.g., Admin Tool] | N/A | N/A | N/A | N/A |
 
 **Coverage Statistics:**
 - Full Coverage: X tickets (X%)
@@ -138,12 +138,19 @@ This template defines the structure and format for release risk assessment repor
 
 **Search each E2E repository for tests related to changed functionality:**
 
+#### Selenium Tests (HealthBridge-Selenium-Tests)
+
+| Ticket | Related Test File(s) | Test Coverage | Sufficient? |
+|--------|---------------------|---------------|-------------|
+| HM-XXXXX | `HBPrescriptions/Tests/PrescriptionWorkflowTests.cs` | Prescription creation and validation | Yes |
+| HM-XXXXX | `HBIntegrationTests/Tests/ClaimsApiTests.cs` | Claims API integration | Partial - missing edge case |
+| HM-XXXXX | None found | - | No coverage |
+
 #### Playwright Tests (HealthBridge-E2E-Tests)
 
 | Ticket | Related Test File(s) | Test Coverage | Sufficient? |
 |--------|---------------------|---------------|-------------|
-| HM-XXXXX | `tests/prescriptions.spec.ts` | Creates prescription, validates dosage | Yes |
-| HM-XXXXX | `tests/scheduling.spec.ts` | Basic appointment flow | Partial - missing edge case |
+| HM-XXXXX | `tests/scheduling.spec.ts` | Appointment scheduling flow | Yes |
 | HM-XXXXX | None found | - | No coverage |
 
 #### Mobile Tests (HealthBridge-Mobile-Tests)
@@ -168,7 +175,7 @@ This template defines the structure and format for release risk assessment repor
 ### 4.4 Recommended E2E Test Execution Plan
 
 **Pre-Release Must Run (Changes covered by existing automation):**
-- [ ] `HealthBridge-E2E-Tests/tests/prescriptions.spec.ts` - Covers HM-XXXXX
+- [ ] `HealthBridge-Selenium-Tests/HBPrescriptions/Tests/PrescriptionWorkflowTests.cs` - Covers HM-XXXXX
 - [ ] `HealthBridge-E2E-Tests/tests/scheduling.spec.ts` - Covers HM-XXXXX
 - [ ] `HealthBridge-Mobile-Tests/test/appointments/` - Covers HM-XXXXX
 
@@ -207,24 +214,24 @@ This template defines the structure and format for release risk assessment repor
 - **UPDATE**: Existing test needs modification (new validation, changed UI, new edge case)
 - **DELETE**: Feature removed, or test made obsolete by refactoring
 
-**Framework Selection (Auto-selected based on functional area):**
-- **Playwright** -> Prescriptions, Patient Records, Billing, Scheduling, Lab Results, Staff
-- **Mobile** -> Mobile-specific: Appointment booking, Lab result viewing, Medication tracking
+**Framework Selection:** Use the Quick Reference Table in `context/e2e-test-coverage-map.md` to determine which frameworks apply to each functional area. Do not hardcode framework-to-area mappings.
 
 ---
 
 ## 5. Hotfix Pattern Analysis (Historical RCA)
 
-Based on root cause analysis of production hotfixes:
+Apply patterns per-PR based on each PR's ticket prefix, not the release branch prefix. Group findings by repository. Use the repo-specific pattern table from `context/historical-bugfix-patterns.md`.
 
-| Pattern | Status | PRs Affected | Findings |
-|---------|--------|--------------|----------|
-| Edge Cases (28%) | pass/warn/fail | #123, #125 | [Specific findings or "No issues detected"] |
-| Authorization Gaps (22%) | pass/warn/fail | #124 | [Specific findings or "No issues detected"] |
-| NULL Handling (18%) | pass/warn/fail | - | [Specific findings or "No issues detected"] |
-| Logic/Condition Errors (16%) | pass/warn/fail | #126 | [Specific findings or "No issues detected"] |
-| Data Validation (10%) | pass/warn/fail | - | [Specific findings or "No issues detected"] |
-| Missing Implementation (6%) | pass/warn/fail | - | [Specific findings or "No issues detected"] |
+**For releases spanning multiple repositories**, use a sub-heading per repository (e.g., `### HealthBridge-Web`, `### HealthBridge-Api`) with a separate pattern table under each.
+
+| Pattern (XX%) | Status | PRs Affected | Findings |
+|----------------|--------|--------------|----------|
+| [Pattern 1 from repo-specific table] | pass/warn/fail | [tickets] | [Specific findings or "No issues detected"] |
+| [Pattern 2 from repo-specific table] | pass/warn/fail | [tickets] | [Specific findings or "No issues detected"] |
+| [Pattern 3 from repo-specific table] | pass/warn/fail | [tickets] | [Specific findings or "No issues detected"] |
+| [Pattern 4 from repo-specific table] | pass/warn/fail | [tickets] | [Specific findings or "No issues detected"] |
+| [Pattern 5 from repo-specific table] | pass/warn/fail | [tickets] | [Specific findings or "No issues detected"] |
+| [Pattern 6 from repo-specific table] | pass/warn/fail | [tickets] | [Specific findings or "No issues detected"] |
 
 ---
 
@@ -254,11 +261,27 @@ Based on root cause analysis of production hotfixes:
 
 ## 7. Release Recommendation
 
-- [ ] **Ready for Release** - All critical areas covered
-- [ ] **Conditional Release** - Proceed with noted manual testing
-- [ ] **Delay Recommended** - Critical gaps must be addressed first
+- [ ] **GO** — All critical areas covered, automated tests pass
+- [ ] **CONDITIONAL GO** — Proceed with noted manual testing of gaps
+- [ ] **NO-GO** — Critical gaps must be resolved first
 
 **Justification:** [1-2 sentences explaining the recommendation]
+
+---
+
+## 8. Post-Release Monitoring
+
+| Metric | Baseline | Alert Threshold | Action |
+|--------|----------|-----------------|--------|
+| [metric] | [value] | [threshold] | [action] |
+
+**Actions Timeline:**
+- **0-4h post-release:** [specific checks]
+- **Week 1:** [specific monitoring]
+
+**Warning Signs:**
+- [sign 1]
+- [sign 2]
 
 ---
 
@@ -299,10 +322,10 @@ Based on root cause analysis of production hotfixes:
 ## Example Entries
 
 ### Good PR Analysis Entry
-| #4521 | Fix prescription rounding error for multi-dose | @jsmith | 2026-01-03 | 4 | Partial | Medium | Modifies core calculation, tests only cover single dose |
+| HM-4521 | 2026-01-03 | 4 | Partial | Medium | Modifies core calculation, tests only cover single dose |
 
 ### Bad PR Analysis Entry (AVOID)
-| #4521 | Prescription fix | @jsmith | 2026-01-03 | 4 | Partial | Medium | Needs more testing |
+| HM-4521 | 2026-01-03 | 4 | Partial | Medium | Needs more testing |
 
 ### Good Testing Recommendation
 - `Services/PrescriptionService.cs` -> Create `Tests/Services/PrescriptionServiceTests.cs`

@@ -1,5 +1,10 @@
 # Code Review Report Template
 
+**Related Documents:**
+- `prompts/code-review-qa/code-review-qa.md` — PR analysis prompt (patterns, detection checklists, security checks)
+- `prompts/code-review-qa/code-review-brief-template.md` — Brief report template
+- `context/code-review-false-positive-prevention.md` — False positive prevention rules (Rules 1-6)
+
 This template defines the structure and format for code review reports.
 
 **USE THIS EXACT STRUCTURE - DO NOT MODIFY SECTION NUMBERS OR NAMES**
@@ -10,9 +15,9 @@ This template defines the structure and format for code review reports.
 |------------|-------|-------------|
 | **Maximum Word Count** | **1300 words** | MANDATORY - Use tables, not paragraphs |
 | **Focus** | **ISSUES & RISKS** | Don't describe obvious changes - identify PROBLEMS |
-| **E2E Repositories** | **ALL FRAMEWORKS** | Playwright, Mobile |
+| **E2E Repositories** | **ALL FRAMEWORKS** | Selenium (Python), Playwright (TypeScript), Mobile (WebdriverIO) |
 | **Specificity** | **FILE:LINE REFS** | Every issue with specific location |
-| **Hotfix Patterns** | **MANDATORY** | Check all 6 patterns from Hotfix RCA |
+| **Hotfix Patterns** | **MANDATORY** | Check all patterns from the repo-specific table in `context/historical-bugfix-patterns.md` |
 | **Format** | **Tables > Prose** | Every finding in a table row |
 
 ---
@@ -69,14 +74,16 @@ This template defines the structure and format for code review reports.
 
 ### 3.2 Hotfix Pattern Prevention
 
+**Use the pattern table matching the auto-detected repository** from `context/historical-bugfix-patterns.md`.
+
 | Pattern | Status | Finding | Location |
 |---------|--------|---------|----------|
-| Edge Cases (28%) | pass/warn/fail | [specific finding] | [file:line] |
-| Authorization Gaps (22%) | pass/warn/fail | [specific finding] | [file:line] |
-| NULL Handling (18%) | pass/warn/fail | [specific finding] | [file:line] |
-| Logic/Condition Errors (16%) | pass/warn/fail | [specific finding] | [file:line] |
-| Data Validation (10%) | pass/warn/fail | [specific finding] | [file:line] |
-| Missing Implementation (6%) | pass/warn/fail | [specific finding] | [file:line] |
+| [Pattern 1 (XX%)] | pass/warn/fail | [specific finding] | [file:line] |
+| [Pattern 2 (XX%)] | pass/warn/fail | [specific finding] | [file:line] |
+| [Pattern 3 (XX%)] | pass/warn/fail | [specific finding] | [file:line] |
+| [Pattern 4 (XX%)] | pass/warn/fail | [specific finding] | [file:line] |
+| [Pattern 5 (XX%)] | pass/warn/fail | [specific finding] | [file:line] |
+| [Pattern 6 (XX%)] | pass/warn/fail | [specific finding] | [file:line] |
 
 ---
 
@@ -96,11 +103,14 @@ This template defines the structure and format for code review reports.
 ### 4.2 E2E Automation Impact
 
 **E2E Test Repositories:**
+- **Selenium:** `HealthBridge-Selenium-Tests/` (Python/Selenium) — UI tests + Integration/API tests
 - **Playwright:** `HealthBridge-E2E-Tests/` (TypeScript/Playwright)
-- **Mobile:** `HealthBridge-Mobile-Tests/` (WebdriverIO)
+- **Mobile:** `HealthBridge-Mobile-Tests/` (JavaScript/WebdriverIO)
 
 | Framework | Test File | Test Name | Action | Reason | Effort |
 |-----------|-----------|-----------|--------|--------|--------|
+| Selenium UI | [path] | [name] | UPDATE/DELETE/ADD/NONE | [why] | [hrs] |
+| Selenium Integration | [path] | [name] | UPDATE/DELETE/ADD/NONE | [why] | [hrs] |
 | Playwright | [path] | [name] | UPDATE/DELETE/ADD/NONE | [why] | [hrs] |
 | Mobile | [path] | [name] | UPDATE/DELETE/ADD/NONE | [why] | [hrs] |
 
@@ -108,6 +118,7 @@ This template defines the structure and format for code review reports.
 
 | Repository | Update | Add | Delete | Total Effort |
 |------------|--------|-----|--------|--------------|
+| Selenium | [#] | [#] | [#] | [hours] |
 | Playwright | [#] | [#] | [#] | [hours] |
 | Mobile | [#] | [#] | [#] | [hours] |
 | **TOTAL** | | | | **[hours]** |
@@ -117,6 +128,7 @@ This template defines the structure and format for code review reports.
 | Test Type | Data Needed | Source | Setup Required |
 |-----------|-------------|--------|----------------|
 | Unit Tests | [data] | Mock/Fixture | [steps] |
+| Selenium | [data] | Test DB/Fixture | [steps] |
 | Playwright | [data] | Fixture/API | [steps] |
 | Mobile | [data] | Test Account | [steps] |
 
@@ -208,7 +220,7 @@ This template defines the structure and format for code review reports.
 
 **Manual Verification Required Before Merge:**
 
-Based on the code changes analyzed above, manually test these critical scenarios before merging:
+Based on the code changes analyzed above, manually test these critical scenarios before merging. Add or remove items as appropriate for the PR — minimum 3, maximum 5.
 
 - [ ] **[Primary Flow]:** [Brief description of main user-facing change]
 - [ ] **[Edge Case]:** [Key boundary condition or edge case to verify]
@@ -219,7 +231,7 @@ Based on the code changes analyzed above, manually test these critical scenarios
 
 This is a minimal checklist for quick pre-merge validation. For detailed acceptance test scenarios with Given/When/Then format, run the Acceptance Tests Agent:
 ```
-@hb-qa-acceptance-tests <BRANCH-ID>
+@hb-acceptance-tests <BRANCH-ID>
 ```
 
 ---
@@ -228,39 +240,20 @@ This is a minimal checklist for quick pre-merge validation. For detailed accepta
 
 **Mode:** Interactive (default) / Static (`--no-feedback`)
 
-### Interactive Mode (default)
+Interactive feedback is managed by the agent per the feedback protocol in the agent prompt (Step 8). The agent auto-populates verdicts after collecting developer responses.
 
-After generating the report, the agent presents each finding to the developer. The developer selects a verdict for each finding from 4 options:
-
-- **Valid** - Finding is accurate and actionable
-- **False Positive** - Finding is incorrect or not applicable
-- **Won't Fix** - Finding is valid but won't be addressed
-- **Provide More Information** - Request deep analysis with probability, risk assessment, and code evidence
-
-**"Provide More Information" triggers:**
-1. Agent reads actual code at flagged location
-2. Searches for sibling/related code patterns in codebase
-3. Generates detailed analysis with risk assessment table (Probability x Impact x Detectability)
-4. Saves to `reports/code-review/<TICKET>-findings-detailed.md`
-5. Presents summary and asks for final verdict (Valid / False Positive / Won't Fix)
-
-**The agent auto-populates this table** with developer responses. Findings that received deep analysis are noted in the Comment column.
+**Verdicts:**
+- **Valid** — Finding is accurate and actionable
+- **False Positive** — Finding is incorrect or not applicable
+- **Won't Fix** — Finding is valid but won't be addressed
 
 | # | Section | Finding | Verdict | Comment |
 |---|---------|---------|---------|---------|
-| 1 | [3.2/6] | [Pre-populated from report findings] | [from developer] | [deep analysis note if applicable] |
-
-**Output:** Feedback is also saved as JSON to `reports/feedback/<TICKET>-feedback.json` for accuracy tracking.
-
-### Static Mode (`--no-feedback`)
-
-When `--no-feedback` is specified, Section 10 is a static table. Developers fill in verdicts manually.
-
-| # | Section | Finding | Verdict | Comment |
-|---|---------|---------|---------|---------|
-| 1 | [3.2/6] | [Pre-populated from report findings] | | |
+| 1 | [3.2/6] | [Pre-populated from report findings] | [from developer or empty in --no-feedback mode] | [deep analysis note if applicable] |
 
 **Overall Accuracy:** ___/10
+
+**Output:** Feedback is also saved as JSON to `reports/feedback/<TICKET>-feedback.json` for accuracy tracking.
 
 ---
 
@@ -269,59 +262,19 @@ When `--no-feedback` is specified, Section 10 is a static table. Developers fill
 
 ---
 
-## Section Guidelines
+## Section Constraints
 
-### Section 1: Summary
-- Maximum 50 words
-- What changed and why (business/clinical context)
-- No code details
+These constraints add rules not visible in the template structure above. Sections not listed (2, 4, 5, 7) have no constraints beyond the template structure.
 
-### Section 2: Risk Assessment
-- All factors in table format
-- Clear risk justification
-- Consider patient safety and downstream impacts
-
-### Section 3: Code Quality Review
-- Two subsections required: Standard Checks + Hotfix Patterns
-- Every check with status icon
-- File:line references for any issues
-
-### Section 4: Test Coverage Analysis
-- Three subsections required: Unit Tests + E2E Impact + Test Data
-- Cover ALL E2E repositories (Playwright, Mobile)
-- Include effort estimates for each
-
-### Section 5: Regression Testing
-- Focus on areas outside the direct change
-- Consider integration points
-
-### Section 9: Critical Test Scenarios
-- Keep to 3-5 scenarios maximum
-- High-level only (one line per scenario)
-- Focus on must-test items before merge
-- Include reference to Acceptance Tests Agent for comprehensive planning
-
-### Section 6: Issues Found
-- Categorize by severity (Critical/Warning/Suggestion)
-- Include file:line references
-- Be actionable
-- Critical/Warning findings MUST include Evidence
-- Apply the False Positive Prevention Protocol before including any finding
-
-### Section 7: Questions
-- Specific, not generic
-- Only if genuinely unclear
-
-### Section 8: Recommendation
-- One checkbox only
-- Match to issues found
-
-### Section 10: Developer Feedback
-- Pre-populate the feedback table with ALL findings from Sections 3.2 (Hotfix Patterns) and 6 (Issues Found)
-- Each finding that has warn or fail status in Section 3.2, or any issue listed in Section 6, gets its own row
-- Leave Verdict and Comment columns empty for developers to fill in
-- Include "Overall Accuracy" score field (___/10)
-- This section is **excluded from the 1300 word count limit**
+| Section | Constraint |
+|---------|-----------|
+| 1. Summary | Maximum 50 words. No code details. |
+| 3.2 Hotfix Patterns | Use repo-specific pattern table. Apply False Positive Prevention rules before including any finding. |
+| 4.3 Test Data | If no special test data is required, write "Standard test data sufficient — no special setup required" in a single row. |
+| 6. Issues Found | Critical/Warning findings MUST include Evidence (tool output or code reference). |
+| 8. Recommendation | One checkbox only — must match severity of issues found. |
+| 9. Test Scenarios | Keep to 3-5 scenarios. One line per scenario. |
+| 10. Developer Feedback | Pre-populate with ALL findings from Sections 3.2 (warn/fail) and 6 (all severities). **Excluded from 1300 word count limit.** |
 
 ---
 
@@ -333,5 +286,5 @@ When `--no-feedback` is specified, Section 10 is a static table. Developers fill
 
 **For comprehensive acceptance test scenarios**, use the separate Acceptance Tests Agent:
 ```
-@hb-qa-acceptance-tests <BRANCH-ID>
+@hb-acceptance-tests <BRANCH-ID>
 ```

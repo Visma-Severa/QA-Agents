@@ -1,8 +1,8 @@
 # HealthBridge QA AI Agents
 
-**Created by:** [Kira Komshilova](https://www.linkedin.com/in/kira-komshilova/) (kira.komshilova@visma.com)
+**Created by:** [Kira Komshilova](https://www.linkedin.com/in/kira-komshilova/)
 
-> **This is an anonymized DEMO project.** The original production system is used internally at [Visma](https://www.visma.com/) for QA automation across a large multi-repository enterprise platform. All domain-specific references have been replaced with a fictional "HealthBridge" health management theme. The project structure, agents, prompts, templates, and example reports can be used as a reference for building your own AI-powered QA agents.
+> **This is a demo project** based on a production system used for QA automation across a large multi-repository enterprise platform. All domain-specific references have been replaced with a fictional "HealthBridge" health management theme. The project structure, agents, prompts, templates, and example reports can be used as a reference for building your own AI-powered QA agents.
 
 A centralized repository for AI prompts and agents used across HealthBridge projects. These tools enhance developer productivity, code quality, and release management through AI-assisted analysis in a multi-repository health management platform.
 
@@ -206,13 +206,13 @@ User Input (ticket ID, error, release name)
 
 | Agent | Chat Participant | Purpose | Example |
 |-------|-----------------|---------|---------|
-| **Code Review** | `@hb-qa-code-review` | Analyze PR/branch for code quality, test gaps, risks | `@hb-qa-code-review HM-14200` |
-| **Acceptance Tests** | `@hb-qa-acceptance-tests` | Generate Given/When/Then test scenarios | `@hb-qa-acceptance-tests HM-14200` |
-| **Bug Report** | `@hb-qa-bug-report` | Analyze errors and generate ticket-ready bug reports | `@hb-qa-bug-report [error details]` |
+| **Code Review** | `@hb-code-review` | Analyze PR/branch for code quality, test gaps, risks | `@hb-code-review HM-14200` |
+| **Acceptance Tests** | `@hb-acceptance-tests` | Generate Given/When/Then test scenarios | `@hb-acceptance-tests HM-14200` |
+| **Bug Report** | `@hb-bug-report` | Analyze errors and generate ticket-ready bug reports | `@hb-bug-report [error details]` |
 | **Bugfix RCA** | `@hb-bugfix-rca` | Root cause analysis for hotfixes | `@hb-bugfix-rca HM-14200 Release-4/2026` |
 | **Requirements Analysis** | `@hb-requirements-analysis` | Pre-development requirements validation (7/10 gate) | `@hb-requirements-analysis HM-14200` |
 | **Release Analysis** | `@hb-release-analysis` | Analyze releases for risk, coverage, deployment readiness | `@hb-release-analysis release/Release-04/2026` |
-| **Feedback** | `@hb-qa-feedback` | Interactive developer feedback on code review findings | Invoked after `@hb-qa-code-review` with `interactive` |
+| **Feedback** | `@hb-feedback` | Interactive developer feedback on code review findings | Invoked after `@hb-code-review` with `interactive` |
 
 ---
 
@@ -563,7 +563,7 @@ Without the extension, you would need to manually copy-paste agent prompt files 
 
 | Capability | Without Extension | With Extension |
 |------------|------------------|----------------|
-| **Agent invocation** | Copy-paste prompt file into chat | Type `@hb-qa-code-review HM-14200` directly |
+| **Agent invocation** | Copy-paste prompt file into chat | Type `@hb-code-review HM-14200` directly |
 | **Repository sync** | Manually `git pull` each repo before analysis | Automatic safe sync before every agent run |
 | **Manual sync** | Run shell script or pull each repo | Command Palette: "HealthBridge QA: Sync Repositories" |
 | **Sync cooldown** | N/A | 5-minute cooldown prevents redundant syncs |
@@ -646,13 +646,13 @@ Type `@hb` in GitHub Copilot Chat. You should see these agents:
 
 | Agent | Purpose | Example Usage |
 |-------|---------|---------------|
-| `@hb-qa-code-review` | Analyze branches for code quality and test coverage | `@hb-qa-code-review HM-14200` |
-| `@hb-qa-acceptance-tests` | Generate comprehensive acceptance test scenarios | `@hb-qa-acceptance-tests HM-14200` |
-| `@hb-qa-bug-report` | Generate ticket-ready bug reports from errors | `@hb-qa-bug-report [error details]` |
+| `@hb-code-review` | Analyze branches for code quality and test coverage | `@hb-code-review HM-14200` |
+| `@hb-acceptance-tests` | Generate comprehensive acceptance test scenarios | `@hb-acceptance-tests HM-14200` |
+| `@hb-bug-report` | Generate ticket-ready bug reports from errors | `@hb-bug-report [error details]` |
 | `@hb-bugfix-rca` | Root cause analysis for bugfixes | `@hb-bugfix-rca HM-14200 Release-4/2026` |
 | `@hb-requirements-analysis` | Analyze requirements with health domain compliance | `@hb-requirements-analysis HM-14200` |
 | `@hb-release-analysis` | Analyze releases for risk and coverage | `@hb-release-analysis release/Release-04/2026` |
-| `@hb-qa-feedback` | Interactive developer feedback on code review findings | Invoked after `@hb-qa-code-review` with `interactive` keyword |
+| `@hb-feedback` | Interactive developer feedback on code review findings | Invoked after `@hb-code-review` with `interactive` keyword |
 
 You can also trigger a manual sync anytime: **F1** > **"HealthBridge QA: Sync Repositories"**
 
@@ -686,7 +686,7 @@ Then reload VS Code: **F1** > **"Developer: Reload Window"**
 **Scenario:** You have a branch `HM-14200` and want to analyze its code quality, test coverage, and identify risks.
 
 ```
-@hb-qa-code-review HM-14200
+@hb-code-review HM-14200
 ```
 
 **What you get:**
@@ -711,9 +711,9 @@ All outputs are saved to `DEMO-QA-Agents/reports/code-review/`.
 **Examples:**
 
 ```
-@hb-qa-code-review HM-14200              # Comprehensive (default)
-@hb-qa-code-review HM-14200 brief        # Brief only (GitHub-ready)
-@hb-qa-code-review HM-14200 both         # Both formats simultaneously
+@hb-code-review HM-14200              # Comprehensive (default)
+@hb-code-review HM-14200 brief        # Brief only (GitHub-ready)
+@hb-code-review HM-14200 both         # Both formats simultaneously
 ```
 
 ---
@@ -749,11 +749,11 @@ All outputs are saved to `DEMO-QA-Agents/reports/code-review/`.
 **Examples:**
 
 ```
-@hb-qa-acceptance-tests HM-14200
+@hb-acceptance-tests HM-14200
 ```
 
 ```
-@hb-qa-acceptance-tests HM-14200
+@hb-acceptance-tests HM-14200
 
 Original Requirements:
 - Doctor can prescribe controlled substances with dual authorization
@@ -768,7 +768,7 @@ Original Requirements:
 **Scenario:** Production error found in logs -- need a ticket-ready bug report with root cause and fix options.
 
 ```
-@hb-qa-bug-report
+@hb-bug-report
 
 Error: System.NullReferenceException
 File: PrescriptionService.cs, line 234
@@ -805,8 +805,8 @@ at HealthBridge.Controllers.PrescriptionController.Create()
 
 | Document | Word Limit | Content |
 |----------|-----------|---------|
-| `<TICKET>_Root_Cause_Analysis.md` | 1000 words | RCA report with timeline, 5 Whys, pattern match |
-| `<TICKET>_E2E_Test_Recommendations.md` | No limit | Test code recommendations to prevent recurrence |
+| `<TICKET>-rca.md` | 1500 words | RCA report with timeline, 5 Whys, pattern match |
+| `<TICKET>-e2e-test-recommendations.md` | No limit | Test code recommendations to prevent recurrence |
 
 **Two modes** (auto-detected from input):
 
@@ -887,16 +887,16 @@ Requirements:
 1. @hb-requirements-analysis [ticket]          -> Validate requirements
 2. (If score >=7) -> QA Test Plan + Dev Estimation auto-generated
 3. [Developer implements]
-4. @hb-qa-code-review [branch]                 -> Pre-merge review
-5. @hb-qa-acceptance-tests [branch]            -> Final test scenarios
+4. @hb-code-review [branch]                 -> Pre-merge review
+5. @hb-acceptance-tests [branch]            -> Final test scenarios
 ```
 
 #### Workflow 2: Bug Investigation and Fix
 ```
-1. @hb-qa-bug-report                           -> Analyze error, get fix options
+1. @hb-bug-report                           -> Analyze error, get fix options
 2. [Developer implements fix]
 3. @hb-bugfix-rca [branch]                     -> Understand root cause
-4. @hb-qa-code-review [branch]                 -> Ensure fix quality
+4. @hb-code-review [branch]                 -> Ensure fix quality
 ```
 
 #### Workflow 3: Release Preparation
@@ -910,7 +910,7 @@ Requirements:
 
 #### Workflow 4: PR Review Process
 ```
-1. @hb-qa-code-review [branch] both
+1. @hb-code-review [branch] both
 2. Post brief report to GitHub PR
 3. Use comprehensive report for team review
 4. If critical issues -> Request changes
@@ -948,10 +948,10 @@ DEMO-QA-Agents/
 │
 ├── agents/                                     # Agent Definitions
 │   └── vscode-chat-participants/
-│       ├── qa-code-review.md                   # Code review agent
-│       ├── qa-acceptance-tests.md              # Acceptance test generation agent
-│       ├── qa-bug-report.md                    # Bug report agent
-│       ├── qa-feedback.md                      # Developer feedback agent
+│       ├── code-review.md                      # Code review agent
+│       ├── acceptance-tests.md                 # Acceptance test generation agent
+│       ├── bug-report.md                       # Bug report agent
+│       ├── feedback.md                         # Developer feedback agent
 │       ├── bugfix-rca.md                       # Root cause analysis agent
 │       ├── requirements-analysis.md            # Requirements validation agent
 │       └── release-analysis.md                 # Release risk assessment agent
@@ -1046,11 +1046,11 @@ Reports are saved to `DEMO-QA-Agents/reports/` (from workspace root):
 
 | Directory | Content | Word Limit |
 |-----------|---------|------------|
-| **`reports/code-review/`** | PR code review reports (brief and comprehensive) + findings-detailed analysis | 1300 / 300 words |
+| **`reports/code-review/`** | PR code review reports (brief and comprehensive) + findings-detailed analysis | 1300 / 450 words |
 | **`reports/acceptance-tests/`** | Acceptance test scenarios with BDD format | No limit |
-| **`reports/bug-reports/`** | Ticket-ready bug reports with fix recommendations | 600 words |
-| **`reports/bugfix-rca/`** | Root cause analysis and E2E test recommendations | 1000 words |
-| **`reports/requirements-analysis/`** | Requirements analysis + QA test plan + dev estimation | 1000 words |
+| **`reports/bug-reports/`** | Ticket-ready bug reports with fix recommendations | 900 words |
+| **`reports/bugfix-rca/`** | Root cause analysis and E2E test recommendations | 1500 words |
+| **`reports/requirements-analysis/`** | Requirements analysis + QA test plan + dev estimation | 1500 words |
 | **`reports/week-release/`** | Release risk assessment + release notes + Slack message | 1500 words |
 | **`reports/feedback/`** | Developer feedback JSON files for accuracy tracking | N/A (JSON) |
 

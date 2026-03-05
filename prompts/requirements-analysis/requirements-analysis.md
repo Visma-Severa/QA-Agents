@@ -17,6 +17,7 @@ HealthBridge is a comprehensive health management platform with **multiple repos
 | Repository | Technology | Purpose |
 |------------|------------|---------|
 | **HealthBridge-Web** | C# / ASP.NET Core | Main web application, clinical workflows, business logic |
+| **HealthBridge-Portal** | C# / .NET Core | Provider portal with React frontend |
 | **HealthBridge-Api** | C# / .NET Core | External API for partner integrations |
 | **HealthBridge-Mobile** | Flutter/Dart | Mobile application for clinicians and patients |
 
@@ -28,10 +29,8 @@ HealthBridge is a comprehensive health management platform with **multiple repos
 
 ## Why This Analysis Matters
 
-Based on historical data:
-- **28% of production hotfixes** were caused by unhandled edge cases
-- **22% of hotfixes** stemmed from authorization gaps (access control missing)
-- **18% of hotfixes** were due to NULL handling issues
+Based on historical data (see `context/historical-bugfix-patterns.md` for repo-specific percentages):
+- Top hotfix causes: **unhandled edge cases**, **authorization gaps**, **NULL handling issues**
 - **Many issues** arose from incomplete cross-repository coordination
 
 Early requirements analysis prevents these issues before development starts.
@@ -55,6 +54,8 @@ Analyze the provided requirements and identify gaps, risks, and integration impa
 ---
 
 ## Analysis Required
+
+**Note:** Analysis section order below does not need to match output section order. Follow `requirements-analysis-template.md` section numbering for the final report.
 
 ### 1. Requirements Summary
 
@@ -84,7 +85,7 @@ Identify missing business context:
 
 ### 3. Edge Cases & Exceptional Scenarios
 
-**CRITICAL**: Based on hotfix analysis, 28% of production issues were edge cases.
+**CRITICAL**: Edge cases are the #1 hotfix pattern across repositories (see `context/historical-bugfix-patterns.md`).
 
 | Category | Scenario | Expected Behavior | Defined? |
 |----------|----------|-------------------|----------|
@@ -166,7 +167,15 @@ Define expected behavior for failure scenarios:
 | **UI Components** | [views, components?] | [Razor/Blazor files] | High/Med/Low |
 | **API Endpoints** | [internal APIs affected?] | [controllers] | High/Med/Low |
 
-#### 6.2 HealthBridge-Api (C# / .NET Core) - Partner API
+#### 6.2 HealthBridge-Portal (C# / .NET Core + React) - Provider Portal
+
+| Area | Changes Required | Files/Modules | Priority |
+|------|------------------|---------------|----------|
+| **React Components** | [new/modified components?] | [src/components] | High/Med/Low |
+| **API Integration** | [backend endpoints affected?] | [controllers] | High/Med/Low |
+| **Permissions** | [permission guards needed?] | [auth modules] | High/Med/Low |
+
+#### 6.3 HealthBridge-Api (C# / .NET Core) - Partner API
 
 | Area | Changes Required | Files/Modules | Priority |
 |------|------------------|---------------|----------|
@@ -175,7 +184,7 @@ Define expected behavior for failure scenarios:
 | **DTOs/Contracts** | [new/modified data contracts?] | [models] | High/Med/Low |
 | **Versioning** | [breaking change? new version?] | [routing] | High/Med/Low |
 
-#### 6.3 HealthBridge-Mobile (Flutter/Dart) - Mobile Application
+#### 6.4 HealthBridge-Mobile (Flutter/Dart) - Mobile Application
 
 | Area | Changes Required | Files/Modules | Priority |
 |------|------------------|---------------|----------|
@@ -190,7 +199,7 @@ Define expected behavior for failure scenarios:
 - Are there offline requirements?
 - Push notification needs?
 
-#### 6.4 Cross-Repository Coordination
+#### 6.5 Cross-Repository Coordination
 
 | Dependency | From | To | Timing | Risk |
 |------------|------|-----|--------|------|
@@ -260,44 +269,34 @@ Scenario: [Missing scenario name]
 |------|------------|--------|------------|
 | [risk description] | Low/Med/High | Low/Med/High | [how to prevent] |
 
-**Overall Readiness Assessment:**
-- [ ] **Ready for Development** - All requirements clear
-- [ ] **Needs Clarification** - Some gaps identified
-- [ ] **Not Ready** - Significant gaps must be addressed
+**Readiness verdict:** See Section 3 (Requirements Readiness Score) for authoritative decision.
 
 ---
 
-## Requirements Completeness Scoring
+## Requirements Readiness Scoring
 
-**CRITICAL: This score determines if QA Test Plan and Dev Estimation can be generated**
+**CRITICAL: This score determines if QA Test Plan and Dev Estimation can be generated.**
 
-### Scoring Criteria (10-point scale)
+**Use the 7-dimension weighted scoring model.** Canonical definition: `requirements-analysis-template.md`, Section 3. Score each dimension 0-10, apply weights, calculate total:
 
-Rate requirements completeness across 5 dimensions:
+| Criteria | Weight | What to Evaluate |
+|----------|--------|-----------------|
+| **Completeness** | 20% | Are all business rules defined? |
+| **Clarity** | 15% | Is the user story unambiguous? |
+| **Testability** | 15% | Can acceptance criteria be tested? |
+| **Feasibility** | 15% | Is it technically achievable? |
+| **Edge Cases Defined** | 10% | What % of edge cases have defined behavior? |
+| **Integration Impact Defined** | 10% | Are cross-system impacts understood? |
+| **Domain Compliance** | 15% | Do requirements align with healthcare regulations? |
 
-| Dimension | Score (0-2) | Criteria |
-|-----------|-------------|----------|
-| **Business Rules Defined** | [X]/2 | 2 = All business logic clear / 1 = Some gaps / 0 = Major unknowns |
-| **Edge Cases Addressed** | [X]/2 | 2 = Comprehensive coverage / 1 = Basic coverage / 0 = Not addressed |
-| **Integration Impacts Clear** | [X]/2 | 2 = All integrations identified / 1 = Some unclear / 0 = Many unknowns |
-| **Error Handling Defined** | [X]/2 | 2 = All scenarios defined / 1 = Basic scenarios / 0 = Not defined |
-| **Multi-Repo Scope Clear** | [X]/2 | 2 = All repos analyzed / 1 = Some ambiguity / 0 = Unclear scope |
-| **TOTAL COMPLETENESS** | **[X]/10** | |
+**See `requirements-analysis-template.md` for the full scoring table structure.**
 
-### Completeness Interpretation
+### Readiness Decision
 
-| Score | Readiness | Can Generate Test Plan & Dev Estimation? | Action |
-|-------|-----------|------------------------------------------|--------|
-| **9-10** | Complete | **YES** - High confidence | Proceed with QA Test Plan + Dev Estimation |
-| **7-8** | Good | **YES** - Acceptable confidence | Proceed with QA Test Plan + Dev Estimation |
-| **5-6** | Incomplete | **NO** - Too many gaps | Clarify with PO before planning |
-| **3-4** | Poor | **NO** - Major unknowns | Extensive PO input needed |
-| **1-2** | Very Poor | **NO** - Not ready | Requirements must be rewritten |
+**See `requirements-analysis-template.md` Section 3 for score interpretation and verdict thresholds.**
 
-**Threshold for Automated Planning:** **Score >= 7/10**
-
-If score >= 7: Generate all 3 documents (Requirements Analysis, QA Test Plan, Dev Estimation)
-If score < 7: Generate only Requirements Analysis, list critical questions for PO
+- **Score >= 7/10:** Generate all 3 documents (Requirements Analysis, QA Test Plan, Dev Estimation)
+- **Score < 7/10:** Generate only Requirements Analysis, list critical questions for PO
 
 ---
 
@@ -306,7 +305,7 @@ If score < 7: Generate only Requirements Analysis, list critical questions for P
 **Follow the structure in:** `requirements-analysis-template.md`
 
 The template defines:
-- Section structure and order (12 main sections)
+- Section structure and order (13 main sections)
 - Table formats for gap analysis, integration impacts, risks
 - Priority/risk indicators
 - Checklist format for action items
@@ -314,7 +313,7 @@ The template defines:
 
 ## Constraints
 
-- **Maximum length:** 1000 words
+- **Maximum length:** 1500 words
 - Focus on gaps and risks, not restating requirements
 - Prioritize items that could cause production issues
 - Include specific questions, not generic "needs clarification"
@@ -328,11 +327,11 @@ When analyzing requirements, search the codebase across all repositories:
 | Repository | Search Path |
 |------------|-------------|
 | HealthBridge-Web | `HealthBridge-Web/` |
+| HealthBridge-Portal | `HealthBridge-Portal/` |
 | HealthBridge-Api | `HealthBridge-Api/` |
 | HealthBridge-Mobile | `HealthBridge-Mobile/` |
 
-Use tools:
-- `grep_search` for finding related code across all repos
-- `file_search` for locating files
-- `read_file` for understanding existing logic
-- `semantic_search` for when exact search terms are unclear
+Use your IDE's tools (or git commands) to:
+- Search file contents: `git grep -n "<pattern>" origin/main -- "*.cs"`
+- Locate files: `git ls-tree -r --name-only origin/main | grep "<pattern>"`
+- Read file from remote: `git show origin/main:<file-path>`

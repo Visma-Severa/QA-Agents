@@ -17,16 +17,16 @@ This agent helps QA and developers by automatically analyzing errors and excepti
 - Classify error types (NullRef, IndexOut, Logic, Authorization, etc.)
 - Locate problematic code with file:line references
 - Perform root cause analysis with code context
-- Match against historical hotfix patterns (Edge Cases 28%, Authorization Gaps 22%, NULL Handling 18%, Logic Errors 16%, Data Validation 10%, Missing Implementation 6%)
+- Match against historical hotfix patterns (repo-specific — see `context/historical-bugfix-patterns.md`)
 - Search codebase for same bug pattern elsewhere (critical for preventing copy-paste bugs)
 - Assess severity objectively using defined criteria
 - Provide actionable fix recommendations with code examples
 - Suggest test coverage improvements (Unit, E2E, Mobile)
-- Generate ticket-ready bug reports (max 600 words)
+- Generate ticket-ready bug reports (max 900 words)
 
 ## Outputs
 
-**Bug Report Document** - Comprehensive bug report (max 600 words) following 9-section template:
+**Bug Report Document** - Comprehensive bug report (max 900 words) following 9-section template:
 1. Error Summary
 2. Steps to Reproduce
 3. Expected vs Actual Behavior
@@ -44,7 +44,7 @@ This agent helps QA and developers by automatically analyzing errors and excepti
 ### VS Code/Cursor
 
 1. Open the multi-repository workspace
-2. Use the agent from `agents/vscode-chat-participants/qa-bug-report.md`
+2. Use the agent from `agents/vscode-chat-participants/bug-report.md`
 3. Provide error message, stack trace, or symptom description
 
 **Important:** Always read all three files before generating reports:
@@ -87,7 +87,7 @@ Copy the prompt from [bug-report-prompt.md](bug-report-prompt.md) and provide it
 
 ### Phase 5: Test Coverage Analysis (2-3 min)
 - Check unit test existence
-- Check E2E coverage (Playwright, Mobile)
+- Check E2E coverage (Selenium UI, Selenium Integration, Playwright, Mobile)
 - Determine automation priority
 
 ### Phase 6: Fix Recommendation (3-5 min)
@@ -97,21 +97,14 @@ Copy the prompt from [bug-report-prompt.md](bug-report-prompt.md) and provide it
 
 ### Phase 7: Report Generation (5-10 min)
 - Follow template exactly
-- Keep within 600-word limit
+- Keep within 900-word limit
 - Ensure all 9 sections are complete
 
-**Total Time Budget:** 18-24 minutes
+**Total Time Budget:** 25-35 minutes
 
 ## Hotfix Patterns (Historical Data)
 
-| Pattern | % of Bugs | Key Indicators |
-|---------|-----------|----------------|
-| **Edge Cases** | 28% | IndexOutOfRange, empty collections, boundary issues |
-| **Authorization Gaps** | 22% | Unauthorized patient access, role bypass, missing permission checks |
-| **NULL Handling** | 18% | NullReferenceException, missing null checks |
-| **Logic/Condition Errors** | 16% | Logic errors, wrong operators, incorrect conditions |
-| **Data Validation** | 10% | Invalid medical data formats, missing format validation |
-| **Missing Implementation** | 6% | NotImplementedException, TODO comments, stub methods |
+**Canonical source:** `context/historical-bugfix-patterns.md` — contains 5 repository-specific pattern tables. Use the correct table for the analyzed repository.
 
 ## Severity Levels
 
@@ -127,9 +120,9 @@ Copy the prompt from [bug-report-prompt.md](bug-report-prompt.md) and provide it
 **Why:** Prevents copy-paste bugs from spreading. If one file has a null handling bug, similar files often have the same issue.
 
 **Methods:**
-- `grep -rn "problematic_pattern"` for similar code structures
-- `semantic_search` for conceptual similarity
-- `list_code_usages` to find all callers
+- `git grep -n "problematic_pattern" origin/main` for similar code structures
+- IDE search tools for conceptual similarity
+- `git grep` to find all callers and usages
 - Search similar file names (e.g., `*Service.cs` if bug in `PrescriptionService.cs`)
 
 **Time Budget:** 2-4 minutes (part of Phase 3)
@@ -138,7 +131,7 @@ Copy the prompt from [bug-report-prompt.md](bug-report-prompt.md) and provide it
 
 Before submitting report:
 - [ ] All 9 mandatory sections present
-- [ ] Word count <= 600 words
+- [ ] Word count <= 900 words
 - [ ] Severity correctly assessed and justified
 - [ ] Steps to reproduce are clear and numbered
 - [ ] Root cause includes file:line references
@@ -158,9 +151,9 @@ Before submitting report:
 ## Integration with Other Agents
 
 **After Bug Fix:**
-- Use `@hb-qa-code-review` to review the fix implementation
-- Use `@hb-qa-acceptance-tests` to create regression test scenarios
+- Use `@hb-code-review` to review the fix implementation
+- Use `@hb-acceptance-tests` to create regression test scenarios
 
 **During Development:**
-- Use `@hb-qa-requirements-analysis` to prevent bugs during planning phase
+- Use `@hb-requirements-analysis` to prevent bugs during planning phase
 - Reference bug patterns in code review checklists
