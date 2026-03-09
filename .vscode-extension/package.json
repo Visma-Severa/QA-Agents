@@ -24,20 +24,20 @@
     ],
     "chatParticipants": [
       {
-        "id": "hb-qa-acceptance-tests",
-        "name": "hb-qa-acceptance-tests",
+        "id": "hb-acceptance-tests",
+        "name": "hb-acceptance-tests",
         "description": "Generate comprehensive acceptance test scenarios from Jira tickets or branch changes",
         "isSticky": true
       },
       {
-        "id": "hb-qa-code-review",
-        "name": "hb-qa-code-review",
+        "id": "hb-code-review",
+        "name": "hb-code-review",
         "description": "Analyze branches for code quality, test coverage, and identify testing needs",
         "isSticky": true
       },
       {
-        "id": "hb-qa-bug-report",
-        "name": "hb-qa-bug-report",
+        "id": "hb-bug-report",
+        "name": "hb-bug-report",
         "description": "Analyze errors/exceptions and generate JIRA-ready bug reports",
         "isSticky": true
       },
@@ -60,9 +60,15 @@
         "isSticky": true
       },
       {
-        "id": "hb-qa-feedback",
-        "name": "hb-qa-feedback",
+        "id": "hb-feedback",
+        "name": "hb-feedback",
         "description": "Collect and analyze QA feedback from test cycles",
+        "isSticky": true
+      },
+      {
+        "id": "hb-setup",
+        "name": "hb-setup",
+        "description": "Interactive wizard to adapt QA Agents framework to your project",
         "isSticky": true
       }
     ]

@@ -84,6 +84,7 @@ These commands work on Windows (with Git Bash), macOS, and Linux:
 | **Requirements Analysis** | Pre-development requirements validation | `@hb-requirements-analysis` | [requirements-analysis.md](../agents/vscode-chat-participants/requirements-analysis.md) |
 | **Release Analysis** | Analyze releases for risk and coverage | `@hb-release-analysis` | [release-analysis.md](../agents/vscode-chat-participants/release-analysis.md) |
 | **Feedback** | Interactive developer feedback on code review findings | `@hb-feedback` | [feedback.md](../agents/vscode-chat-participants/feedback.md) |
+| **Setup** | Interactive wizard to adapt framework to your project | `@hb-setup` | [setup.md](../agents/vscode-chat-participants/setup.md) |
 
 ### Predictive Code Analysis
 

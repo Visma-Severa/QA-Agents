@@ -1,19 +1,48 @@
-import * as vscode from 'vscode';
-import * as fs from 'fs';
-import * as path from 'path';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import { syncAllRepos, SyncReport } from './repo-sync';
-
-const execAsync = promisify(exec);
-
-interface AgentConfig {
-    id: string;
-    name: string;
-    promptFile: string;
-}
-
-const AGENTS: AgentConfig[] = [
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.activate = activate;
+exports.deactivate = deactivate;
+const vscode = __importStar(require("vscode"));
+const fs = __importStar(require("fs"));
+const path = __importStar(require("path"));
+const child_process_1 = require("child_process");
+const util_1 = require("util");
+const repo_sync_1 = require("./repo-sync");
+const execAsync = (0, util_1.promisify)(child_process_1.exec);
+const AGENTS = [
     {
         id: 'hb-acceptance-tests',
         name: 'Acceptance Tests',
@@ -55,12 +84,10 @@ const AGENTS: AgentConfig[] = [
         promptFile: 'setup.md'
     }
 ];
-
 const SYNC_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
 const MAX_TOOL_ROUNDS = 30;
-
 // --- Tools available to the LLM ---
-const LLM_TOOLS: vscode.LanguageModelChatTool[] = [
+const LLM_TOOLS = [
     {
         name: 'runTerminal',
         description: 'Execute a shell command and return stdout/stderr. Use for git commands, listing files, etc.',
@@ -116,22 +143,20 @@ const LLM_TOOLS: vscode.LanguageModelChatTool[] = [
         }
     }
 ];
-
 /**
  * Search all workspace folders for the agent instruction file.
  */
-function findAgentFile(promptFile: string): string | undefined {
+function findAgentFile(promptFile) {
     const folders = vscode.workspace.workspaceFolders;
-    if (!folders) { return undefined; }
-
+    if (!folders) {
+        return undefined;
+    }
     const relativePath = path.join('agents', 'vscode-chat-participants', promptFile);
-
     for (const folder of folders) {
         const directPath = path.join(folder.uri.fsPath, relativePath);
         if (fs.existsSync(directPath)) {
             return directPath;
         }
-
         const subfolderPath = path.join(folder.uri.fsPath, 'DEMO-QA-Agents', relativePath);
         if (fs.existsSync(subfolderPath)) {
             return subfolderPath;
@@ -139,14 +164,14 @@ function findAgentFile(promptFile: string): string | undefined {
     }
     return undefined;
 }
-
 /**
  * Find the root directory containing all repositories.
  */
-function findRepoRoot(): string | undefined {
+function findRepoRoot() {
     const folders = vscode.workspace.workspaceFolders;
-    if (!folders) { return undefined; }
-
+    if (!folders) {
+        return undefined;
+    }
     for (const folder of folders) {
         // Single-folder workspace: the folder itself contains repos
         if (fs.existsSync(path.join(folder.uri.fsPath, 'HealthBridge-Web'))) {
@@ -160,11 +185,10 @@ function findRepoRoot(): string | undefined {
     }
     return undefined;
 }
-
 /**
  * Execute a tool call from the LLM and return the result string.
  */
-async function executeTool(name: string, input: Record<string, string>, workspaceRoot: string): Promise<string> {
+async function executeTool(name, input, workspaceRoot) {
     switch (name) {
         case 'runTerminal': {
             const cwd = input.cwd
@@ -177,9 +201,12 @@ async function executeTool(name: string, input: Record<string, string>, workspac
                     maxBuffer: 2 * 1024 * 1024
                 });
                 let result = stdout || '';
-                if (stderr) { result += `\nSTDERR: ${stderr}`; }
+                if (stderr) {
+                    result += `\nSTDERR: ${stderr}`;
+                }
                 return result || '(no output)';
-            } catch (err: any) {
+            }
+            catch (err) {
                 return `Exit code ${err.code ?? 'unknown'}\n${err.stdout || ''}${err.stderr ? '\nSTDERR: ' + err.stderr : ''}\n${err.message}`;
             }
         }
@@ -194,7 +221,8 @@ async function executeTool(name: string, input: Record<string, string>, workspac
                     return content.substring(0, 100000) + '\n\n... (truncated, file too large)';
                 }
                 return content;
-            } catch (err: any) {
+            }
+            catch (err) {
                 return `Error reading file: ${err.message}`;
             }
         }
@@ -207,8 +235,11 @@ async function executeTool(name: string, input: Record<string, string>, workspac
             try {
                 const { stdout } = await execAsync(cmd, { timeout: 30000, maxBuffer: 2 * 1024 * 1024 });
                 return stdout || '(no matches found)';
-            } catch (err: any) {
-                if (err.code === 1) { return '(no matches found)'; }
+            }
+            catch (err) {
+                if (err.code === 1) {
+                    return '(no matches found)';
+                }
                 return `Search error: ${err.message}`;
             }
         }
@@ -216,45 +247,40 @@ async function executeTool(name: string, input: Record<string, string>, workspac
             return `Unknown tool: ${name}`;
     }
 }
-
-export function activate(context: vscode.ExtensionContext) {
+function activate(context) {
     console.log('HealthBridge QA Agents extension is now active');
-
     // --- Sync infrastructure ---
     const outputChannel = vscode.window.createOutputChannel('HealthBridge QA Sync');
-    let lastSyncReport: SyncReport | null = null;
-    let syncInProgress: Promise<SyncReport> | null = null;
-
-    function getWorkspaceRoot(): string | undefined {
+    let lastSyncReport = null;
+    let syncInProgress = null;
+    function getWorkspaceRoot() {
         const folders = vscode.workspace.workspaceFolders;
-        if (!folders || folders.length === 0) { return undefined; }
+        if (!folders || folders.length === 0) {
+            return undefined;
+        }
         return path.dirname(folders[0].uri.fsPath);
     }
-
-    function runSync(): Promise<SyncReport> {
+    function runSync() {
         const workspaceRoot = getWorkspaceRoot();
         if (!workspaceRoot) {
             return Promise.reject(new Error('Could not determine workspace root'));
         }
         outputChannel.appendLine(`[${new Date().toISOString()}] Starting sync...`);
-        return syncAllRepos(workspaceRoot, (msg) => outputChannel.appendLine(msg));
+        return (0, repo_sync_1.syncAllRepos)(workspaceRoot, (msg) => outputChannel.appendLine(msg));
     }
-
-    function ensureSync(): Promise<SyncReport> {
-        if (syncInProgress) { return syncInProgress; }
+    function ensureSync() {
+        if (syncInProgress) {
+            return syncInProgress;
+        }
         syncInProgress = runSync().finally(() => { syncInProgress = null; });
         return syncInProgress;
     }
-
-    function formatSyncNotification(report: SyncReport): string {
+    function formatSyncNotification(report) {
         const pulled = report.results.filter(r => r.outcome === 'pulled');
-        const skipped = report.results.filter(r =>
-            r.outcome === 'skipped-dirty' ||
+        const skipped = report.results.filter(r => r.outcome === 'skipped-dirty' ||
             r.outcome === 'skipped-wrong-branch' ||
-            r.outcome === 'error'
-        );
-
-        const parts: string[] = [];
+            r.outcome === 'error');
+        const parts = [];
         if (pulled.length > 0) {
             parts.push(`Synced: ${pulled.map(r => r.repo.displayName).join(', ')}`);
         }
@@ -263,40 +289,33 @@ export function activate(context: vscode.ExtensionContext) {
         }
         return parts.join(' | ') || 'All repos up to date';
     }
-
     // --- Register manual sync command ---
     const syncCommand = vscode.commands.registerCommand('hb-qa-agents.syncRepos', async () => {
-        await vscode.window.withProgress(
-            {
-                location: vscode.ProgressLocation.Notification,
-                title: 'HealthBridge QA: Syncing repositories...',
-                cancellable: false,
-            },
-            async () => {
-                try {
-                    const report = await runSync();
-                    lastSyncReport = report;
-                    const message = formatSyncNotification(report);
-                    const hasSkipped = report.results.some(r =>
-                        r.outcome === 'skipped-dirty' ||
-                        r.outcome === 'skipped-wrong-branch' ||
-                        r.outcome === 'error'
-                    );
-                    if (hasSkipped) {
-                        vscode.window.showWarningMessage(`HealthBridge Sync: ${message}`);
-                    } else {
-                        vscode.window.showInformationMessage(`HealthBridge Sync: ${message}`);
-                    }
-                } catch (err) {
-                    vscode.window.showErrorMessage(
-                        `HealthBridge Sync failed: ${err instanceof Error ? err.message : String(err)}`
-                    );
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: 'HealthBridge QA: Syncing repositories...',
+            cancellable: false,
+        }, async () => {
+            try {
+                const report = await runSync();
+                lastSyncReport = report;
+                const message = formatSyncNotification(report);
+                const hasSkipped = report.results.some(r => r.outcome === 'skipped-dirty' ||
+                    r.outcome === 'skipped-wrong-branch' ||
+                    r.outcome === 'error');
+                if (hasSkipped) {
+                    vscode.window.showWarningMessage(`HealthBridge Sync: ${message}`);
+                }
+                else {
+                    vscode.window.showInformationMessage(`HealthBridge Sync: ${message}`);
                 }
             }
-        );
+            catch (err) {
+                vscode.window.showErrorMessage(`HealthBridge Sync failed: ${err instanceof Error ? err.message : String(err)}`);
+            }
+        });
     });
     context.subscriptions.push(syncCommand);
-
     // --- Register each agent as a chat participant ---
     for (const agent of AGENTS) {
         const participant = vscode.chat.createChatParticipant(agent.id, async (request, _context, stream, token) => {
@@ -304,20 +323,15 @@ export function activate(context: vscode.ExtensionContext) {
                 // --- Pre-agent sync (with cooldown) ---
                 const now = Date.now();
                 const lastSyncTime = lastSyncReport?.timestamp.getTime() ?? 0;
-
                 if (now - lastSyncTime > SYNC_COOLDOWN_MS) {
                     stream.markdown('*Syncing repositories...*\n\n');
                     try {
                         const report = await ensureSync();
                         lastSyncReport = report;
-
                         const pulled = report.results.filter(r => r.outcome === 'pulled');
-                        const skipped = report.results.filter(r =>
-                            r.outcome === 'skipped-dirty' ||
+                        const skipped = report.results.filter(r => r.outcome === 'skipped-dirty' ||
                             r.outcome === 'skipped-wrong-branch' ||
-                            r.outcome === 'error'
-                        );
-
+                            r.outcome === 'error');
                         if (pulled.length > 0) {
                             stream.markdown(`Updated: ${pulled.map(r => r.repo.displayName).join(', ')}\n\n`);
                         }
@@ -327,11 +341,11 @@ export function activate(context: vscode.ExtensionContext) {
                             }
                             stream.markdown('\n');
                         }
-                    } catch (err) {
+                    }
+                    catch (err) {
                         stream.markdown(`> ⚠️ Sync warning: ${err instanceof Error ? err.message : String(err)}\n\n`);
                     }
                 }
-
                 // --- Find agent instruction file ---
                 const agentFilePath = findAgentFile(agent.promptFile);
                 if (!agentFilePath) {
@@ -344,15 +358,12 @@ export function activate(context: vscode.ExtensionContext) {
                     stream.markdown('Make sure the **DEMO-QA-Agents** folder is in your workspace.');
                     return;
                 }
-
                 const workspaceRoot = findRepoRoot() || path.dirname(agentFilePath);
                 const agentInstructions = fs.readFileSync(agentFilePath, 'utf-8');
-
                 stream.markdown(`🤖 **${agent.name} Agent Activated**\n\n`);
                 stream.markdown(`Analyzing your request: "${request.prompt}"\n\n`);
-
                 // request.model may be "Auto" which doesn't have a valid sendRequest endpoint
-                let model: vscode.LanguageModelChat = request.model;
+                let model = request.model;
                 const modelId = (model.id || '').toLowerCase();
                 const modelName = (model.name || '').toLowerCase();
                 if (modelId === 'auto' || modelId.includes('auto') || modelName === 'auto' || modelName.includes('auto')) {
@@ -362,77 +373,62 @@ export function activate(context: vscode.ExtensionContext) {
                         return;
                     }
                     // Prefer Claude or GPT-4o for agentic tasks
-                    model = availableModels.find(m =>
-                        m.id.includes('claude') || m.id.includes('gpt-4o')
-                    ) || availableModels[0];
+                    model = availableModels.find(m => m.id.includes('claude') || m.id.includes('gpt-4o')) || availableModels[0];
                 }
                 stream.markdown(`*Using model: ${model.name}*\n\n`);
-
                 // --- Tool-calling loop ---
-                const messages: vscode.LanguageModelChatMessage[] = [
+                const messages = [
                     vscode.LanguageModelChatMessage.User(agentInstructions),
-                    vscode.LanguageModelChatMessage.User(
-                        `Workspace root: ${workspaceRoot}\n\n` +
+                    vscode.LanguageModelChatMessage.User(`Workspace root: ${workspaceRoot}\n\n` +
                         `You have tools available: runTerminal, readFile, searchFiles. ` +
                         `Use them to execute commands and read files - do NOT output raw command text.\n\n` +
-                        `User Request: ${request.prompt}`
-                    )
+                        `User Request: ${request.prompt}`)
                 ];
-
                 for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-                    if (token.isCancellationRequested) { break; }
-
+                    if (token.isCancellationRequested) {
+                        break;
+                    }
                     const response = await model.sendRequest(messages, { tools: LLM_TOOLS }, token);
-
-                    const textParts: string[] = [];
-                    const toolCalls: vscode.LanguageModelToolCallPart[] = [];
-
+                    const textParts = [];
+                    const toolCalls = [];
                     for await (const chunk of response.stream) {
                         if (chunk instanceof vscode.LanguageModelTextPart) {
                             stream.markdown(chunk.value);
                             textParts.push(chunk.value);
-                        } else if (chunk instanceof vscode.LanguageModelToolCallPart) {
+                        }
+                        else if (chunk instanceof vscode.LanguageModelToolCallPart) {
                             toolCalls.push(chunk);
                         }
                     }
-
                     // No tool calls = model is done
-                    if (toolCalls.length === 0) { break; }
-
+                    if (toolCalls.length === 0) {
+                        break;
+                    }
                     // Build assistant message with text + tool calls
-                    const assistantParts: (vscode.LanguageModelTextPart | vscode.LanguageModelToolCallPart)[] = [];
+                    const assistantParts = [];
                     if (textParts.length > 0) {
                         assistantParts.push(new vscode.LanguageModelTextPart(textParts.join('')));
                     }
                     assistantParts.push(...toolCalls);
                     messages.push(vscode.LanguageModelChatMessage.Assistant(assistantParts));
-
                     // Execute tool calls and collect results
-                    const resultParts: vscode.LanguageModelToolResultPart[] = [];
+                    const resultParts = [];
                     for (const call of toolCalls) {
-                        stream.markdown(`\n> 🔧 *${call.name}*: \`${(call.input as any).command || (call.input as any).filePath || (call.input as any).pattern || ''}\`\n`);
-                        const result = await executeTool(call.name, call.input as Record<string, string>, workspaceRoot);
-                        resultParts.push(new vscode.LanguageModelToolResultPart(
-                            call.callId,
-                            [new vscode.LanguageModelTextPart(result)]
-                        ));
+                        stream.markdown(`\n> 🔧 *${call.name}*: \`${call.input.command || call.input.filePath || call.input.pattern || ''}\`\n`);
+                        const result = await executeTool(call.name, call.input, workspaceRoot);
+                        resultParts.push(new vscode.LanguageModelToolResultPart(call.callId, [new vscode.LanguageModelTextPart(result)]));
                     }
                     messages.push(vscode.LanguageModelChatMessage.User(resultParts));
                 }
-
-            } catch (error) {
+            }
+            catch (error) {
                 stream.markdown(`\n\n❌ Error: ${error instanceof Error ? error.message : String(error)}`);
             }
         });
-
-        participant.iconPath = vscode.Uri.file(
-            path.join(context.extensionPath, 'icon.png')
-        );
-
+        participant.iconPath = vscode.Uri.file(path.join(context.extensionPath, 'icon.png'));
         context.subscriptions.push(participant);
     }
-
     vscode.window.showInformationMessage('✅ HealthBridge QA Agents loaded! Use @hb-code-review, @hb-bugfix-rca, etc. in chat');
 }
-
-export function deactivate() {}
+function deactivate() { }
+//# sourceMappingURL=extension.js.map

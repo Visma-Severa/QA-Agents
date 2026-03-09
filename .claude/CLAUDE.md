@@ -171,6 +171,7 @@ These agents can be invoked by describing the task or using the Task tool with s
 | **Requirements Analysis** | Pre-development requirements validation | "Analyze requirements for HM-xxxxx" | `agents/vscode-chat-participants/requirements-analysis.md` |
 | **Release Analysis** | Analyze releases for risk and coverage | "Analyze Release-XX/YYYY" | `agents/vscode-chat-participants/release-analysis.md` |
 | **Feedback** | Interactive developer feedback on code review findings | "Feedback on HM-xxxxx review" | `agents/vscode-chat-participants/feedback.md` |
+| **Setup** | Interactive wizard to adapt framework to your project | "Setup QA agents for my project" | `agents/vscode-chat-participants/setup.md` |
 
 ### Predictive Code Analysis
 
@@ -467,6 +468,7 @@ All agents use prompt templates from `prompts/`:
 | Requirements Analysis | `prompts/requirements-analysis/` | `requirements-analysis-template.md`, `requirements-analysis.md` |
 | Dev Estimation | `prompts/dev-estimation/` | `dev-estimation-template.md` |
 | Feedback | `prompts/feedback/` | `feedback-prompt.md`, `feedback-template.md` |
+| Setup | `prompts/setup/` | `setup-prompt.md`, `generate-repository-dependencies.md`, `generate-e2e-coverage-map.md`, `generate-bugfix-patterns.md` |
 
 **Always read the relevant template before generating any document.**
 

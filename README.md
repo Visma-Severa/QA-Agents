@@ -3,6 +3,8 @@
 **Created by:** [Kira Komshilova](https://www.linkedin.com/in/kira-komshilova/)
 
 > **This is a demo project** based on a production system used for QA automation across a large multi-repository enterprise platform. All domain-specific references have been replaced with a fictional "HealthBridge" health management theme. The project structure, agents, prompts, templates, and example reports can be used as a reference for building your own AI-powered QA agents.
+>
+> **Want to use this for your own project?** See [Adapt to Your Project](#adapt-to-your-project) for the 5-step setup workflow.
 
 A centralized repository for AI prompts and agents used across HealthBridge projects. These tools enhance developer productivity, code quality, and release management through AI-assisted analysis in a multi-repository health management platform.
 
@@ -99,7 +101,7 @@ The workspace contains **10 repositories** across four categories:
 
 ## What's New (v1.0.0)
 
-- **7 specialized QA agents** covering the full software quality lifecycle
+- **8 specialized agents** covering the full software quality lifecycle + project setup
 - **Predictive bug detection** based on historical hotfix pattern analysis
 - **Interactive developer feedback** with deep analysis workflow
 - **VS Code chat extension** with automatic repository sync
@@ -185,7 +187,7 @@ Git for Windows includes **Git Bash**, a Unix-like terminal where `git` always w
 
 ## Architecture Overview
 
-The system is built around **7 specialized agents**, each governed by shared global instructions and backed by:
+The system is built around **8 specialized agents**, each governed by shared global instructions and backed by:
 
 ```
 User Input (ticket ID, error, release name)
@@ -236,6 +238,7 @@ User Input (ticket ID, error, release name)
 | **Requirements Analysis** | `@hb-requirements-analysis` | Pre-development requirements validation (7/10 gate) | `@hb-requirements-analysis HM-14200` |
 | **Release Analysis** | `@hb-release-analysis` | Analyze releases for risk, coverage, deployment readiness | `@hb-release-analysis release/Release-04/2026` |
 | **Feedback** | `@hb-feedback` | Interactive developer feedback on code review findings | Invoked after `@hb-code-review` with `interactive` |
+| **Setup** | `@hb-setup` | Interactive wizard to adapt this framework to your project | `@hb-setup` |
 
 ---
 
@@ -676,6 +679,7 @@ Type `@hb` in GitHub Copilot Chat. You should see these agents:
 | `@hb-requirements-analysis` | Analyze requirements with health domain compliance | `@hb-requirements-analysis HM-14200` |
 | `@hb-release-analysis` | Analyze releases for risk and coverage | `@hb-release-analysis release/Release-04/2026` |
 | `@hb-feedback` | Interactive developer feedback on code review findings | Invoked after `@hb-code-review` with `interactive` keyword |
+| `@hb-setup` | Interactive wizard to adapt framework to your project | `@hb-setup` |
 
 You can also trigger a manual sync anytime: **F1** > **"HealthBridge QA: Sync Repositories"**
 
@@ -977,7 +981,8 @@ DEMO-QA-Agents/
 │       ├── feedback.md                         # Developer feedback agent
 │       ├── bugfix-rca.md                       # Root cause analysis agent
 │       ├── requirements-analysis.md            # Requirements validation agent
-│       └── release-analysis.md                 # Release risk assessment agent
+│       ├── release-analysis.md                 # Release risk assessment agent
+│       └── setup.md                            # Interactive project customization wizard
 │
 ├── prompts/                                    # Prompt Templates
 │   ├── acceptance-tests/                       # Acceptance tests prompt + template
@@ -1008,9 +1013,14 @@ DEMO-QA-Agents/
 │   │   ├── release-assessment-template.md
 │   │   ├── release-notes-prompt.md
 │   │   └── slack-message-template.md
-│   └── requirements-analysis/                  # Requirements analysis prompt + template (7/10 scoring)
-│       ├── requirements-analysis.md
-│       └── requirements-analysis-template.md
+│   ├── requirements-analysis/                  # Requirements analysis prompt + template (7/10 scoring)
+│   │   ├── requirements-analysis.md
+│   │   └── requirements-analysis-template.md
+│   └── setup/                                  # Project setup wizard + context file generators
+│       ├── setup-prompt.md                     # Interactive setup wizard prompt
+│       ├── generate-repository-dependencies.md # Prompt: scan repos → generate dependency map
+│       ├── generate-e2e-coverage-map.md        # Prompt: scan test repos → generate coverage matrix
+│       └── generate-bugfix-patterns.md         # Prompt: analyze hotfix history → generate pattern tables
 │
 ├── context/                                    # Shared Context Files
 │   ├── e2e-test-coverage-map.md                # Which E2E frameworks cover which functional areas
@@ -1034,6 +1044,9 @@ DEMO-QA-Agents/
 │       └── action.yml
 │
 ├── setup/                                      # Setup & Update Scripts
+│   ├── bootstrap.bat                           # Windows double-click bootstrap (creates new project from DEMO)
+│   ├── bootstrap.sh                            # macOS/Linux bootstrap (creates new project from DEMO)
+│   ├── bootstrap.ps1                           # Windows PowerShell bootstrap
 │   ├── setup.bat                               # Windows double-click setup (runs setup.ps1)
 │   ├── setup.sh                                # macOS/Linux full environment setup
 │   ├── setup.ps1                               # Windows PowerShell full environment setup
@@ -1109,6 +1122,7 @@ Reports are saved to `DEMO-QA-Agents/reports/` (from workspace root):
 | Feedback | `prompts/feedback/` | Developer feedback collection and accuracy tracking |
 | Release Assessment | `prompts/release-assessment/` | Release risk assessment, release notes, Slack message |
 | Requirements Analysis | `prompts/requirements-analysis/` | Requirements validation with 7/10 scoring gate |
+| Setup & Context Generators | `prompts/setup/` | Setup wizard + 3 context file generation prompts (dependencies, E2E coverage, bugfix patterns) |
 
 ---
 
@@ -1142,6 +1156,238 @@ code --list-extensions | grep hb-qa
 # Check branch exists in a specific repo
 cd HealthBridge-Web && git branch -r --list "*HM-14200*"
 ```
+
+---
+
+## Adapt to Your Project
+
+This framework is designed to be reused. The agents, prompts, templates, and scoring models are **~70% generic** — only the project-specific configuration (names, repositories, ticket prefixes, domain knowledge) needs to change.
+
+### Setup Workflow (5 Steps)
+
+```
+1. Clone the DEMO project
+2. Run bootstrap script → creates your project folder from DEMO (DEMO stays clean)
+3. Build & install the VS Code extension
+4. Open your project in VS Code / Cursor / Claude Code
+5. Run @setup agent → answer questions → all files updated → done
+```
+
+**Why this order?** The bootstrap script copies the DEMO into a fresh folder first, so the setup agent modifies your copy — never the original template. You can bootstrap multiple projects from the same DEMO.
+
+### Step 1: Clone the DEMO
+
+```bash
+git clone https://github.com/HealthBridge/DEMO-QA-Agents.git
+cd DEMO-QA-Agents
+```
+
+### Step 2: Bootstrap Your Project
+
+The bootstrap script copies all framework files into a new directory, excluding `.git`, `node_modules`, build artifacts, and generated reports. It then initializes a fresh git repo with an initial commit.
+
+**Windows — Easy (double-click):**
+
+1. Open the `setup\` folder in File Explorer
+2. **Double-click `bootstrap.bat`**
+3. Enter your project name when prompted
+
+**Windows — PowerShell:**
+```powershell
+.\setup\bootstrap.ps1 -ProjectName "Falcon"
+
+# Or specify a target directory:
+.\setup\bootstrap.ps1 -ProjectName "Falcon" -TargetDir "C:\Projects"
+```
+
+**macOS/Linux:**
+```bash
+./setup/bootstrap.sh Falcon
+
+# Or specify a target directory:
+./setup/bootstrap.sh Falcon ~/Projects
+```
+
+This creates a new folder (e.g., `falcon-qa-agents/`) with all framework files and a fresh git history.
+
+### Step 3: Build & Install the VS Code Extension
+
+```bash
+cd ../falcon-qa-agents/.vscode-extension
+npm install
+npm run compile
+npx vsce package --allow-missing-repository
+code --install-extension *.vsix --force
+cd ..
+```
+
+> **macOS:** If `code` is not found, open VS Code > Command Palette > "Shell Command: Install 'code' command in PATH"
+
+### Step 4: Open Your Project
+
+Open the workspace in your IDE. The Setup Agent needs access to your project files.
+
+```bash
+# VS Code
+code .
+
+# Or Cursor
+cursor .
+```
+
+### Step 5: Run the Setup Agent
+
+The **Setup Agent** walks you through customization interactively:
+
+```
+@hb-setup
+```
+
+It asks questions about your project, then updates all configuration files automatically:
+
+1. **Collect** — Project name, GitHub org, JIRA prefixes, repositories, tech stack, business domains
+2. **Generate** — Updates IDE configs, extension, setup scripts, agent definitions, creates skeleton context files
+3. **Verify** — Scans for leftover demo references, validates consistency across all files
+
+After setup completes, run the environment setup script to clone your repositories and set up the multi-repo workspace:
+
+```bash
+./setup/setup.sh          # macOS/Linux
+.\setup\setup.ps1         # Windows
+```
+
+### What Gets Customized
+
+| Category | Files | Effort |
+|----------|-------|--------|
+| **Core Configuration** | `.claude/CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md` | Automated by setup agent |
+| **VS Code Extension** | `.vscode-extension/package.json`, `extension.ts` | Automated by setup agent |
+| **Setup Scripts** | `setup/setup.sh`, `setup.ps1`, `.code-workspace` | Automated by setup agent |
+| **Agent Definitions** | `agents/vscode-chat-participants/*.md` (8 files) | Automated by setup agent |
+| **Context Files** | `context/*.md` (domain knowledge, dependencies, patterns) | Skeleton created; **you fill in content** |
+
+### What Stays Generic (Do NOT Change)
+
+| Category | Why |
+|----------|-----|
+| Prompt files (`prompts/*/`) | Analysis logic, scoring models, report structures are project-agnostic |
+| 7/10 scoring gate | Generic quality threshold for requirements validation |
+| Report templates | Consistent output format across all projects |
+| Non-destructive git strategy | `git fetch` + remote refs — universal safety pattern |
+| Branch commit filtering | Works with any ticket prefix automatically |
+
+### Context Files — Your Project Knowledge
+
+After setup, the most impactful step is filling in your context files. These are what make agents smart about **your** project.
+
+**Three context files have dedicated generation prompts** that analyze your codebase and generate the file automatically. Run these prompts in your IDE (paste the prompt file content into the AI chat, or reference the file):
+
+| Priority | Context File | Generation Prompt | How It Works |
+|----------|-------------|-------------------|--------------|
+| **Start here** | `<project>-repository-dependencies.md` | `prompts/setup/generate-repository-dependencies.md` | Scans all repos for HTTP clients, DB connections, shared packages → generates dependency map |
+| **Start here** | `e2e-test-coverage-map.md` | `prompts/setup/generate-e2e-coverage-map.md` | Scans test repos for test files, maps to functional areas → generates coverage matrix |
+| After 10+ hotfixes | `historical-bugfix-patterns.md` | `prompts/setup/generate-bugfix-patterns.md` | Analyzes hotfix branches/commits, categorizes root causes → generates pattern tables per repo type |
+
+**These context files must be filled in manually** (no generation prompt — they require domain expert knowledge):
+
+| Priority | Context File | What to Add |
+|----------|-------------|-------------|
+| Add over time | `domain-*.md` | Business rules, regulatory requirements per functional area |
+| Add over time | `jira-field-mappings.md` | File path → JIRA component auto-detection rules |
+| Add over time | `code-review-false-positive-prevention.md` | Patterns that agents incorrectly flag as issues |
+
+#### How to Run a Generation Prompt
+
+**Claude Code:**
+```bash
+# Paste the prompt content or reference the file
+cat prompts/setup/generate-repository-dependencies.md
+# Then ask: "Run this prompt to generate my repository dependencies"
+```
+
+**VS Code / Cursor:**
+1. Open the prompt file (e.g., `prompts/setup/generate-repository-dependencies.md`)
+2. Copy its content into the AI chat
+3. The AI will analyze your repos and generate the context file
+
+**Re-run anytime:** These prompts are safe to re-run. They overwrite the previous output with fresh analysis.
+
+### Building Your Historical Bugfix Patterns
+
+The `historical-bugfix-patterns.md` file powers **predictive bug detection** — the Code Review agent checks new code against patterns that historically caused production hotfixes. The more accurate your patterns, the more real bugs get caught before merge.
+
+**Start after your first 10-15 hotfixes.** You need enough data to see patterns. Before that, use the starter template (created by the bootstrap/setup agent) with placeholder percentages.
+
+#### How to Identify Patterns
+
+**Step 1: Collect hotfix data.** For each production hotfix in the last 6-12 months, record:
+
+| Field | How to Find It |
+|-------|---------------|
+| Repository | Which repo was the fix in? |
+| Root cause category | What type of mistake caused the bug? (see category list below) |
+| File/area affected | Which module or functional area? |
+| How it could have been caught | Code review? Unit test? E2E test? Better requirements? |
+
+Use git history to find hotfix branches/commits:
+```bash
+# Find hotfix branches (adjust pattern to match your naming convention)
+git branch -r --list "*hotfix*"
+git branch -r --list "*bugfix*"
+
+# Or search commit messages for hotfix indicators
+git log --oneline --grep="hotfix" --since="2025-01-01"
+git log --oneline --grep="fix" --grep="prod" --all-match --since="2025-01-01"
+```
+
+**Step 2: Categorize each hotfix.** Assign each hotfix to one of these common root cause categories:
+
+| Category | What It Means | Example |
+|----------|--------------|---------|
+| Edge Cases | Code doesn't handle boundary/empty/unusual inputs | Empty list, zero quantity, date at year boundary |
+| NULL Handling | Missing null/undefined checks | `FirstOrDefault()` without null check, optional field assumed present |
+| Logic/Condition Errors | Incorrect business logic or control flow | Wrong operator, missing condition branch, off-by-one |
+| Permission/Authorization | Access control gaps | Missing role check, wrong permission level |
+| Data Validation | Invalid input accepted | Malformed format, out-of-range value, duplicate allowed |
+| Configuration/DI Errors | Dependency injection or config mistakes | Missing DI registration, wrong service lifetime |
+| Database/ORM Issues | Data layer bugs | Wrong column type, missing include, FK misconfiguration |
+| Concurrency/Race Conditions | Thread safety or ordering issues | Concurrent writes, change tracking conflicts |
+| Type Casting Errors | Wrong type conversions | Integer overflow, wrong data type in query |
+| Missing Implementation | Incomplete features shipped | TODO left in code, stub not replaced |
+| State Management | UI/app state lifecycle bugs | Stale state, disposed widget access, async races |
+| Error Handling | Missing or wrong error handling | Swallowed exceptions, missing retry on transient failure |
+
+**Step 3: Calculate percentages per repository type.** Group repositories by technology (e.g., all C# microservices together, frontend separately, mobile separately). Count how many hotfixes fall into each category:
+
+```
+Example: 40 hotfixes across 3 C# microservice repos
+  NULL Handling:      9 hotfixes → 22%
+  Configuration/DI:   7 hotfixes → 18%
+  Logic/Condition:    6 hotfixes → 15%
+  Database/EF Core:   6 hotfixes → 14%
+  Edge Cases:         5 hotfixes → 12%
+  ...
+```
+
+**Step 4: Write your pattern table.** Update `context/historical-bugfix-patterns.md` with one table per repository type. Follow the format in the demo file — each row needs: Pattern name, percentage, and Detection Focus (specific examples from your codebase).
+
+#### Separate Tables per Repository Type
+
+Different repository types produce different bug patterns. **Always create separate tables** for:
+
+| Repository Type | Why Different Patterns |
+|-----------------|----------------------|
+| **Monolith / Web backend** | Business logic complexity, authorization layers, legacy code |
+| **Microservice APIs** | DI configuration, database/ORM issues, inter-service contracts |
+| **Frontend (React, Angular)** | State management, UI lifecycle, permission guards |
+| **Mobile (Flutter, React Native)** | Navigation lifecycle, async state, calculation errors |
+| **Background services / Workers** | Concurrency, retry logic, deployment configuration |
+
+#### Keeping Patterns Current
+
+- **Review quarterly** — Re-analyze the last quarter's hotfixes and update percentages
+- **After major incidents** — Add the new pattern immediately if it reveals a category not yet tracked
+- **When onboarding new repos** — Start with the closest existing pattern table, then refine after 10+ hotfixes
 
 ---
 

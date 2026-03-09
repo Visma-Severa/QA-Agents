@@ -425,6 +425,7 @@ All agents use prompt templates from `prompts/`:
 | Bugfix RCA | `prompts/bugfix-rca/` | `bugfix-rca-template.md` |
 | Release Assessment | `prompts/release-assessment/` | `release-assessment-prompt.md`, `release-assessment-template.md`, `release-notes-prompt.md` |
 | Requirements Analysis | `prompts/requirements-analysis/` | `requirements-analysis-template.md` — **7/10 scoring system** |
+| Setup | `prompts/setup/` | `setup-prompt.md` |
 
 **Always read the relevant template before generating any document.**
 
