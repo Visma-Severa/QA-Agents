@@ -1016,8 +1016,11 @@ DEMO-QA-Agents/
 │   ├── requirements-analysis/                  # Requirements analysis prompt + template (7/10 scoring)
 │   │   ├── requirements-analysis.md
 │   │   └── requirements-analysis-template.md
-│   └── setup/                                  # Project setup wizard prompt
-│       └── setup-prompt.md
+│   └── setup/                                  # Project setup wizard + context file generators
+│       ├── setup-prompt.md                     # Interactive setup wizard prompt
+│       ├── generate-repository-dependencies.md # Prompt: scan repos → generate dependency map
+│       ├── generate-e2e-coverage-map.md        # Prompt: scan test repos → generate coverage matrix
+│       └── generate-bugfix-patterns.md         # Prompt: analyze hotfix history → generate pattern tables
 │
 ├── context/                                    # Shared Context Files
 │   ├── e2e-test-coverage-map.md                # Which E2E frameworks cover which functional areas
@@ -1119,6 +1122,7 @@ Reports are saved to `DEMO-QA-Agents/reports/` (from workspace root):
 | Feedback | `prompts/feedback/` | Developer feedback collection and accuracy tracking |
 | Release Assessment | `prompts/release-assessment/` | Release risk assessment, release notes, Slack message |
 | Requirements Analysis | `prompts/requirements-analysis/` | Requirements validation with 7/10 scoring gate |
+| Setup & Context Generators | `prompts/setup/` | Setup wizard + 3 context file generation prompts (dependencies, E2E coverage, bugfix patterns) |
 
 ---
 
@@ -1274,16 +1278,39 @@ After setup completes, run the environment setup script to clone your repositori
 
 ### Context Files — Your Project Knowledge
 
-After setup, the most impactful step is filling in your context files. These are what make agents smart about **your** project:
+After setup, the most impactful step is filling in your context files. These are what make agents smart about **your** project.
+
+**Three context files have dedicated generation prompts** that analyze your codebase and generate the file automatically. Run these prompts in your IDE (paste the prompt file content into the AI chat, or reference the file):
+
+| Priority | Context File | Generation Prompt | How It Works |
+|----------|-------------|-------------------|--------------|
+| **Start here** | `<project>-repository-dependencies.md` | `prompts/setup/generate-repository-dependencies.md` | Scans all repos for HTTP clients, DB connections, shared packages → generates dependency map |
+| **Start here** | `e2e-test-coverage-map.md` | `prompts/setup/generate-e2e-coverage-map.md` | Scans test repos for test files, maps to functional areas → generates coverage matrix |
+| After 10+ hotfixes | `historical-bugfix-patterns.md` | `prompts/setup/generate-bugfix-patterns.md` | Analyzes hotfix branches/commits, categorizes root causes → generates pattern tables per repo type |
+
+**These context files must be filled in manually** (no generation prompt — they require domain expert knowledge):
 
 | Priority | Context File | What to Add |
 |----------|-------------|-------------|
-| **Start here** | `<project>-repository-dependencies.md` | Service dependency map (who calls whom, shared databases) |
-| **Start here** | `e2e-test-coverage-map.md` | Mark which functional areas have automated test coverage |
 | Add over time | `domain-*.md` | Business rules, regulatory requirements per functional area |
-| Add over time | `historical-bugfix-patterns.md` | Analyze real hotfixes after a few sprints to get actual percentages |
 | Add over time | `jira-field-mappings.md` | File path → JIRA component auto-detection rules |
 | Add over time | `code-review-false-positive-prevention.md` | Patterns that agents incorrectly flag as issues |
+
+#### How to Run a Generation Prompt
+
+**Claude Code:**
+```bash
+# Paste the prompt content or reference the file
+cat prompts/setup/generate-repository-dependencies.md
+# Then ask: "Run this prompt to generate my repository dependencies"
+```
+
+**VS Code / Cursor:**
+1. Open the prompt file (e.g., `prompts/setup/generate-repository-dependencies.md`)
+2. Copy its content into the AI chat
+3. The AI will analyze your repos and generate the context file
+
+**Re-run anytime:** These prompts are safe to re-run. They overwrite the previous output with fresh analysis.
 
 ### Building Your Historical Bugfix Patterns
 

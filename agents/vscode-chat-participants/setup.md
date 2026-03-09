@@ -192,13 +192,19 @@ Files Created: [count]
 Leftover references: [count] (should be 0)
 
 Skeleton files that need your data:
-  ⚠ context/domain-[name].md — add business rules and regulations
-  ⚠ context/[project]-repository-dependencies.md — map service dependencies
-  ⚠ context/historical-bugfix-patterns.md — add real bugfix data over time
+  ⚠ context/domain-[name].md — add business rules and regulations (manual)
+  ⚠ context/[project]-repository-dependencies.md — run generation prompt
+  ⚠ context/e2e-test-coverage-map.md — run generation prompt
+  ⚠ context/historical-bugfix-patterns.md — run generation prompt (after 10+ hotfixes)
 
 Next Steps:
-1. Fill in skeleton context files (start with repository-dependencies.md)
-2. Rebuild the VS Code extension with your new agent prefix:
+1. Generate context files using the prompts in prompts/setup/:
+   - prompts/setup/generate-repository-dependencies.md → scans repos, generates dependency map
+   - prompts/setup/generate-e2e-coverage-map.md → scans test repos, generates coverage matrix
+   - prompts/setup/generate-bugfix-patterns.md → analyzes hotfix history (run after 10+ hotfixes)
+   Paste prompt content into AI chat or reference the file to run.
+2. Fill in domain context files manually (context/domain-[name].md)
+3. Rebuild the VS Code extension with your new agent prefix:
    cd .vscode-extension && npm install && npm run compile
    npx vsce package --allow-missing-repository
    code --install-extension [prefix]-qa-agents-1.0.0.vsix --force

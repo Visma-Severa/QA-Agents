@@ -468,7 +468,7 @@ All agents use prompt templates from `prompts/`:
 | Requirements Analysis | `prompts/requirements-analysis/` | `requirements-analysis-template.md`, `requirements-analysis.md` |
 | Dev Estimation | `prompts/dev-estimation/` | `dev-estimation-template.md` |
 | Feedback | `prompts/feedback/` | `feedback-prompt.md`, `feedback-template.md` |
-| Setup | `prompts/setup/` | `setup-prompt.md` |
+| Setup | `prompts/setup/` | `setup-prompt.md`, `generate-repository-dependencies.md`, `generate-e2e-coverage-map.md`, `generate-bugfix-patterns.md` |
 
 **Always read the relevant template before generating any document.**
 
