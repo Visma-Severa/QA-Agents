@@ -253,7 +253,7 @@ If you are setting up for the first time, use the automated setup script. It clo
 1. Open PowerShell and run these lines to clone the repository:
    ```powershell
    mkdir HealthBridge; cd HealthBridge
-   git clone https://github.com/HealthBridge/DEMO-QA-Agents.git
+   git clone https://github.com/visma-kira-komshilova/DEMO-QA-Agents
    ```
 2. Open the folder `HealthBridge\DEMO-QA-Agents\setup\` in File Explorer
 3. **Double-click `setup.bat`** -- it handles everything automatically
@@ -263,7 +263,7 @@ If you are setting up for the first time, use the automated setup script. It clo
 ```powershell
 # Create workspace directory and clone QA Agents repo first
 mkdir HealthBridge; cd HealthBridge
-git clone https://github.com/HealthBridge/DEMO-QA-Agents.git
+git clone https://github.com/visma-kira-komshilova/DEMO-QA-Agents
 cd DEMO-QA-Agents
 
 # Run setup (use -ExecutionPolicy Bypass if scripts are blocked)
@@ -276,7 +276,7 @@ powershell -ExecutionPolicy Bypass -File .\setup\setup.ps1
 ```bash
 # Create workspace directory and clone QA Agents repo first
 mkdir HealthBridge && cd HealthBridge
-git clone https://github.com/HealthBridge/DEMO-QA-Agents.git
+git clone https://github.com/visma-kira-komshilova/DEMO-QA-Agents
 cd DEMO-QA-Agents
 chmod +x setup/setup.sh
 ./setup/setup.sh
@@ -380,7 +380,7 @@ git clone https://github.com/HealthBridge/HealthBridge-E2E-Tests.git
 git clone https://github.com/HealthBridge/HealthBridge-Mobile-Tests.git
 
 # QA Agents repository
-git clone https://github.com/HealthBridge/DEMO-QA-Agents.git
+git clone https://github.com/visma-kira-komshilova/DEMO-QA-Agents
 ```
 
 Your directory should now look like:
@@ -1163,57 +1163,68 @@ cd HealthBridge-Web && git branch -r --list "*HM-14200*"
 
 This framework is designed to be reused. The agents, prompts, templates, and scoring models are **~70% generic** — only the project-specific configuration (names, repositories, ticket prefixes, domain knowledge) needs to change.
 
-### Setup Workflow (5 Steps)
+### Setup Workflow (7 Steps)
 
 ```
-1. Clone the DEMO project
-2. Run bootstrap script → creates your project folder from DEMO (DEMO stays clean)
-3. Build & install the VS Code extension
-4. Open your project in VS Code / Cursor / Claude Code
-5. Run @setup agent → answer questions → all files updated → done
+1. Open VS Code or Cursor
+2. Create a workspace folder for your projects
+3. Clone the DEMO project
+4. Run bootstrap script → creates your project folder from DEMO (DEMO stays clean)
+5. Build & install the VS Code extension
+6. Open your project folder in VS Code
+7. Run @setup agent → answer questions → all files updated → done
 ```
 
 **Why this order?** The bootstrap script copies the DEMO into a fresh folder first, so the setup agent modifies your copy — never the original template. You can bootstrap multiple projects from the same DEMO.
 
-### Step 1: Clone the DEMO
+### Step 1: Open VS Code or Cursor
+
+Open VS Code (or Cursor) before proceeding — all following steps run from within the IDE terminal.
+
+### Step 2: Create a Workspace Folder
+
+Create a dedicated folder on your machine where all project repositories will live:
 
 ```bash
-git clone https://github.com/HealthBridge/DEMO-QA-Agents.git
+mkdir my-workspace
+cd my-workspace
+```
+
+### Step 3: Clone the DEMO
+
+```bash
+git clone https://github.com/visma-kira-komshilova/DEMO-QA-Agents
 cd DEMO-QA-Agents
 ```
 
-### Step 2: Bootstrap Your Project
+### Step 4: Bootstrap Your Project
 
 The bootstrap script copies all framework files into a new directory, excluding `.git`, `node_modules`, build artifacts, and generated reports. It then initializes a fresh git repo with an initial commit.
 
-**Windows — Easy (double-click):**
-
-1. Open the `setup\` folder in File Explorer
-2. **Double-click `bootstrap.bat`**
-3. Enter your project name when prompted
+> Replace `<myproject-qa-agents>` with your actual project name — this becomes the name of the folder created for your adapted framework (e.g., `./setup/bootstrap.sh MyProject` creates `myproject-qa-agents/`).
 
 **Windows — PowerShell:**
 ```powershell
-.\setup\bootstrap.ps1 -ProjectName "Falcon"
+.\setup\bootstrap.ps1 -ProjectName "<myproject-qa-agents>"
 
 # Or specify a target directory:
-.\setup\bootstrap.ps1 -ProjectName "Falcon" -TargetDir "C:\Projects"
+.\setup\bootstrap.ps1 -ProjectName "<myproject-qa-agents>" -TargetDir "C:\Projects"
 ```
 
 **macOS/Linux:**
 ```bash
-./setup/bootstrap.sh Falcon
+./setup/bootstrap.sh <myproject-qa-agents>
 
 # Or specify a target directory:
-./setup/bootstrap.sh Falcon ~/Projects
+./setup/bootstrap.sh <myproject-qa-agents> ~/Projects
 ```
 
-This creates a new folder (e.g., `falcon-qa-agents/`) with all framework files and a fresh git history.
+This creates a new folder `<myproject-qa-agents>/` with all framework files and a fresh git history.
 
-### Step 3: Build & Install the VS Code Extension
+### Step 5: Build & Install the VS Code Extension
 
 ```bash
-cd ../falcon-qa-agents/.vscode-extension
+cd ../<myproject-qa-agents>/.vscode-extension
 npm install
 npm run compile
 npx vsce package --allow-missing-repository
@@ -1223,19 +1234,16 @@ cd ..
 
 > **macOS:** If `code` is not found, open VS Code > Command Palette > "Shell Command: Install 'code' command in PATH"
 
-### Step 4: Open Your Project
+### Step 6: Open the Project in VS Code
 
-Open the workspace in your IDE. The Setup Agent needs access to your project files.
+Open the bootstrapped project folder in VS Code:
 
 ```bash
-# VS Code
+cd ../<myproject-qa-agents>
 code .
-
-# Or Cursor
-cursor .
 ```
 
-### Step 5: Run the Setup Agent
+### Step 7: Run the Setup Agent
 
 The **Setup Agent** walks you through customization interactively:
 
