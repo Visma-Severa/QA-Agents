@@ -60,8 +60,8 @@ User invokes @hb-setup
         v
 Phase 1: Collect — Interactive questions
         |  - Project identity (name, agent prefix)
-        |  - JIRA & branching (ticket prefixes, release branch convention, hotfix convention)
-        |  - Repository inventory (clone URL, category, tech, default branch)
+        |  - Repositories (clone URLs → CLONE IMMEDIATELY → auto-detect tech, branches, conventions)
+        |  - JIRA configuration (ticket prefixes + repo mappings)
         |  - E2E test frameworks and repo assignments
         |  - Business domains for context files
         |  - Development context docs (optional)
@@ -104,8 +104,8 @@ Follow the question flow defined in `prompts/setup/setup-prompt.md`. Store all a
 
 **Question groups:**
 1. Project identity (2 questions: name, agent prefix)
-2. JIRA & branching configuration (ticket prefixes + repo mappings, release branch convention, hotfix branch convention)
-3. Repository inventory (variable — clone URLs by category, then **clone immediately** and auto-detect technology + default branch)
+2. Repositories — collect clone URLs, categorize, **clone immediately**, auto-detect technology, default branch, release/hotfix branch conventions
+3. JIRA configuration (ticket prefixes + repo mappings)
 4. E2E test frameworks (variable — framework name + repo assignment)
 5. Business domains (variable — domain names for skeleton context files)
 6. Development context docs (optional — path pattern for architectural docs)

@@ -42,85 +42,38 @@ Keep it short (2-4 chars). This creates agents like @<prefix>-code-review.
 Example: "acme", "fal", "mt"
 ```
 
-### Group 2: JIRA Configuration
+### Group 2: Repositories (Collect URLs → Clone → Auto-Detect)
 
-**Q2.1** — Ticket prefixes
+**Q2.1** — All repository clone URLs
 ```
-What JIRA ticket prefixes does your project use?
-Enter each prefix on a separate line (without the dash).
-Empty line when done.
-
-Example:
-  ACME
-  ACMP
-```
-
-**Q2.2** — For each prefix, ask:
-```
-Which repositories use the prefix "<PREFIX>-*"?
-(comma-separated)
-```
-
-**Q2.3** — Release branch convention
-```
-What is your release branch naming convention?
-This is used by the Release Analysis agent to find release branches.
-
-Examples:
-  release/Release-04/2026
-  release/v2.1.0
-  release/sprint-42
-  deploy/2026-04-15
-
-Type your pattern, or "none" if you don't use release branches.
-```
-
-**Q2.4** — Hotfix branch convention
-```
-What is your hotfix/bugfix branch naming convention?
-This is used to identify hotfixes for pattern analysis and RCA.
-
-Examples:
-  hotfix/HM-12345
-  bugfix/HM-12345
-  fix/HM-12345-description
-
-Type your pattern, or "default" to search for hotfix/bugfix/fix/patch keywords.
-```
-
-### Group 3: Repository Inventory
-
-**Q3.1** — Core application repositories
-```
-List your core application repositories (product repos).
-For each repo, provide the clone URL (HTTPS or SSH).
+List ALL your repository clone URLs (HTTPS or SSH).
+Group them by category — I'll ask which is which.
 One per line, empty line when done.
 
 Example:
   https://github.com/acme-corp/acme-backend.git
   git@github.com:acme-corp/acme-frontend.git
+  https://github.com/acme-corp/acme-e2e-tests.git
 ```
 
-**Q3.2** — Microservice API repositories
+**Q2.2** — Categorize repositories
 ```
-List your microservice/API repositories (if any).
-One clone URL per line, empty line when done. Type "none" if not applicable.
+For each repo, which category?
+  - Core (main product repos)
+  - Microservice (API services)
+  - E2E (test automation)
+
+<repo-1>: Core / Microservice / E2E?
+<repo-2>: Core / Microservice / E2E?
+...
 ```
 
-**Q3.3** — E2E test automation repositories
-```
-List your E2E test automation repositories (if any).
-One clone URL per line, empty line when done. Type "none" if not applicable.
-```
+**Q2.3** — Clone immediately and auto-detect
 
-**Note:** The repo name is extracted from the clone URL (e.g., `acme-backend` from `https://github.com/acme-corp/acme-backend.git`). Repos can be in different GitHub organizations.
-
-**Q3.4** — Clone repositories and auto-detect technology
-
-**Immediately after Q3.1–Q3.3 are answered, clone all repositories** to the workspace before asking about technology or default branch. This allows the agent to auto-detect repo details instead of relying on the user to know them.
+**As soon as URLs and categories are confirmed, clone ALL repositories immediately.** Do not wait for later questions. This allows auto-detection of technology, branches, and conventions.
 
 ```
-I'll clone your repositories now so I can detect technologies automatically...
+Cloning your repositories now...
 ```
 
 For each repo:
@@ -132,19 +85,52 @@ For each repo:
    - `requirements.txt` / `pyproject.toml` → Python
    - `pom.xml` / `build.gradle` → Java / Spring
 3. Auto-detect default branch: `git remote show origin | grep "HEAD branch"`
+4. Auto-detect release branch convention: `git branch -r --list "*release*"` — look for patterns
+5. Auto-detect hotfix branch convention: `git branch -r --list "*hotfix*" "*bugfix*" "*fix*"`
 
-Present findings for confirmation:
+Present ALL findings for confirmation:
 ```
 Detected repository details:
 
-  acme-backend:    C# / .NET Core    default branch: main
-  acme-frontend:   TypeScript / React default branch: main
-  acme-mobile:     Flutter / Dart     default branch: develop
+  acme-backend:    C# / .NET Core    default branch: main     [Core]
+  acme-frontend:   TypeScript / React default branch: main     [Core]
+  acme-e2e-tests:  TypeScript         default branch: main     [E2E]
+
+Release branch pattern detected: release/v*  (from: release/v2.0.0, release/v2.1.0)
+Hotfix branch pattern detected:  hotfix/*    (from: hotfix/ACM-1234, hotfix/ACM-1567)
 
 Is this correct? (yes / edit)
 ```
 
 If auto-detection fails for a repo (e.g., empty repo, no recognizable project files), ask the user for that repo only.
+If no release/hotfix branches are found, ask the user:
+
+```
+I didn't find release branches in your repos. What is your release branch convention?
+Examples: release/Release-04/2026, release/v2.1.0, release/sprint-42
+Type "none" if you don't use release branches.
+```
+
+**Note:** The repo name is extracted from the clone URL (e.g., `acme-backend` from `https://github.com/acme-corp/acme-backend.git`). Repos can be in different GitHub organizations.
+
+### Group 3: JIRA Configuration
+
+**Q3.1** — Ticket prefixes
+```
+What JIRA ticket prefixes does your project use?
+Enter each prefix on a separate line (without the dash).
+Empty line when done.
+
+Example:
+  ACME
+  ACMP
+```
+
+**Q3.2** — For each prefix, ask:
+```
+Which repositories use the prefix "<PREFIX>-*"?
+(comma-separated)
+```
 
 ### Group 4: E2E Test Frameworks
 
@@ -200,17 +186,17 @@ Project:        <name>
 Agent Prefix:   @<prefix>-*
 Workspace File: <name>.code-workspace
 
+Repositories (<count> total, already cloned):
+  Core:          <name> — <tech> — <default-branch>
+  Microservices: <name> — <tech> — <default-branch>
+  E2E Tests:     <name> — <tech> — <default-branch>
+
+Release Branch:  <detected-pattern or user-provided or "none">
+Hotfix Branch:   <detected-pattern or user-provided or "default">
+
 Ticket Prefixes:
   <PREFIX-1>-* → <repo1>, <repo2>
   <PREFIX-2>-* → <repo3>
-
-Release Branch:  <pattern or "none">
-Hotfix Branch:   <pattern or "default">
-
-Repositories (<count> total):
-  Core:          <name> (<clone-url>)
-  Microservices: <name> (<clone-url>)
-  E2E Tests:     <name> (<clone-url>)
 
 E2E Frameworks:
   <framework1> → <repo>
