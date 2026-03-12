@@ -61,6 +61,33 @@ Which repositories use the prefix "<PREFIX>-*"?
 (comma-separated)
 ```
 
+**Q2.3** — Release branch convention
+```
+What is your release branch naming convention?
+This is used by the Release Analysis agent to find release branches.
+
+Examples:
+  release/Release-04/2026
+  release/v2.1.0
+  release/sprint-42
+  deploy/2026-04-15
+
+Type your pattern, or "none" if you don't use release branches.
+```
+
+**Q2.4** — Hotfix branch convention
+```
+What is your hotfix/bugfix branch naming convention?
+This is used to identify hotfixes for pattern analysis and RCA.
+
+Examples:
+  hotfix/HM-12345
+  bugfix/HM-12345
+  fix/HM-12345-description
+
+Type your pattern, or "default" to search for hotfix/bugfix/fix/patch keywords.
+```
+
 ### Group 3: Repository Inventory
 
 **Q3.1** — Core application repositories
@@ -177,6 +204,9 @@ Ticket Prefixes:
   <PREFIX-1>-* → <repo1>, <repo2>
   <PREFIX-2>-* → <repo3>
 
+Release Branch:  <pattern or "none">
+Hotfix Branch:   <pattern or "default">
+
 Repositories (<count> total):
   Core:          <name> (<clone-url>)
   Microservices: <name> (<clone-url>)
@@ -220,6 +250,8 @@ Build these replacement pairs from the collected answers:
 | `HBP-5001` | `<second-prefix>-2001` (if exists) | Example ticket IDs (all files) |
 | `HMM-3200` | `<third-prefix>-3001` (if exists) | Example ticket IDs (all files) |
 | `HealthBridge.code-workspace` | `<project-name>.code-workspace` | Setup scripts, README |
+| `release/Release-04/2026` | `<release-branch-pattern-example>` | README, CLAUDE.md, release agent, prompts |
+| `hotfix/` (branch convention) | `<hotfix-branch-pattern>` | CLAUDE.md, bugfix-rca agent, generate-bugfix-patterns prompt |
 
 ### 2.2 Structured Updates (Not Simple Find-Replace)
 
@@ -269,6 +301,13 @@ Rebuild with new prefix and correct agent IDs.
 - Rebuild repository tables
 - Update setup command examples
 - Update agent usage examples with new prefix and ticket IDs
+- Update release branch convention examples with pattern from Q2.3
+- **Remove DEMO-only sections:**
+  - Remove "This is a demo project" banner (top of file)
+  - Remove "Adapt to Your Project" section and all subsections (Steps 1-7, What Gets Customized, What Stays Generic, Context Files guidance, Building Your Historical Bugfix Patterns)
+  - Remove "Note" section ("This is a demo/reference implementation...")
+  - Remove "Maintained by: HealthBridge QA Team" footer
+  - Remove "Created by" link (or replace with user's team name if provided)
 
 **`prompts/` — All prompt and template files:**
 
@@ -490,6 +529,9 @@ Search all files (excluding `agents/vscode-chat-participants/setup.md` and `prom
 - `@hb-` (old prefix)
 - `hb-qa-agents` (old extension ID)
 - `HM-14200`, `HBP-5001`, `HMM-3200` (old example tickets)
+- `This is a demo project` (DEMO banner that should have been removed)
+- `Adapt to Your Project` (DEMO section that should have been removed)
+- `demo/reference implementation` (DEMO note that should have been removed)
 
 Report format:
 ```
