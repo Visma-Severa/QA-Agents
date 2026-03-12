@@ -843,7 +843,7 @@ code .
 
 ### Step 7: Run the Setup Agent
 
-The **Setup Agent** walks you through customization interactively:
+The **Setup Agent** is an interactive wizard that customizes the entire framework for your project. It runs in 4 phases:
 
 ```
 @hb-setup
@@ -851,12 +851,75 @@ The **Setup Agent** walks you through customization interactively:
 
 > **Important:** After the setup agent asks its first question, **clear `@hb-setup` from the input field** before typing your answer. If `@hb-setup` remains in the input, each reply will restart the setup from the beginning instead of continuing the conversation.
 
-It asks questions about your project, then updates all configuration files automatically:
+#### Phase 1: Collect (Interactive Questions)
 
-1. **Collect** — Project name, agent prefix, JIRA prefixes, repository clone URLs, tech stack, business domains
-2. **Generate** — Updates IDE configs, extension, setup scripts, agent definitions, prompts, and templates
-3. **Verify** — Scans for leftover demo references, validates consistency across all files
-4. **Context Customization** — Auto-generates repository dependencies, E2E coverage map, JIRA mappings, and guides you through domain knowledge and bugfix patterns
+The agent asks questions in 6 groups, one at a time:
+
+| Group | Questions | What You Provide |
+|-------|-----------|-----------------|
+| **1. Project Identity** | Project name, agent chat prefix | e.g., "Acme Platform", prefix "acme" → creates `@acme-code-review`, `@acme-bug-report`, etc. |
+| **2. Repositories** | Clone URLs + category (Core / Microservice / E2E) | Agent **clones each repo immediately**, then auto-detects technology, default branch, and release/hotfix branch conventions from git history |
+| **3. JIRA Configuration** | Ticket prefixes + which repos each prefix maps to | e.g., `ACME-*` → acme-backend, acme-frontend |
+| **4. E2E Frameworks** | Framework names + which repo contains the tests | e.g., Playwright → acme-e2e-tests. Type "none" if no E2E tests yet |
+| **5. Business Domains** | Functional domain names for context files | e.g., Payments & Billing, User Management, Inventory |
+| **6. Dev Context Docs** | Path to architectural docs (optional) | e.g., "acme-backend/docs/AGENTS-*.md" or "none" |
+
+After all questions, the agent shows a **configuration summary** and asks for confirmation before proceeding.
+
+#### Phase 2: Generate (Automated File Updates)
+
+The agent updates **all** project-specific files automatically:
+
+| What | Files |
+|------|-------|
+| IDE config files | `.claude/CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md` |
+| VS Code extension | `.vscode-extension/package.json`, `extension.ts` |
+| Setup scripts | `setup/setup.sh`, `setup.ps1`, `.code-workspace` |
+| Agent definitions | `agents/vscode-chat-participants/*.md` (8 files) |
+| Prompts & templates | `prompts/**/*.md` — project name, repo names, ticket IDs, E2E repo paths |
+| Skeleton context files | `context/*.md` — repository dependencies, E2E coverage map, bugfix patterns, JIRA mappings, domain files |
+| Report directories | `reports/` with all subdirectories + `.gitkeep` files |
+| README | Updated last — removes DEMO-only sections, replaces all examples |
+| Cleanup | Deletes old DEMO artifacts (`.vsix`, `node_modules`, old workspace file) |
+
+#### Phase 3: Verify (Automated Legacy Scan)
+
+The agent runs `scripts/check-legacy-demo.sh --fix-plan` to scan all files for leftover DEMO references across 6 categories:
+
+| Category | What It Catches |
+|----------|----------------|
+| Project names | "HealthBridge", "Health Bridge" |
+| Ticket prefixes | `HM-*`, `HBP-*`, `HMM-*` |
+| Repository names | HealthBridge-Web, HealthBridge-Api, etc. |
+| Domain terms | prescription, patient, appointment, pharmacy, HIPAA |
+| DEMO references | "Clone the DEMO", "DEMO template", bootstrap instructions |
+| E2E/Mobile frameworks | Playwright, Selenium, WebdriverIO, Flutter, Dart (if not applicable) |
+
+If hits are found, the agent **auto-fixes** them and re-runs the script until clean. It also validates consistency (agent prefix across all files, workspace file matches setup scripts, all referenced context files exist).
+
+#### Phase 4: Context Customization (Interactive + Auto-Generated)
+
+The agent populates context files with real project data:
+
+| Step | Mode | What Happens |
+|------|------|-------------|
+| **4.1 Repository Dependencies** | Auto-generated | Scans all cloned repos for API connections, shared databases, NuGet/npm packages → generates dependency map |
+| **4.2 E2E Coverage Map** | Auto-generated | Scans test repos, maps test files to functional areas → generates coverage matrix. Skipped if no E2E frameworks |
+| **4.3 Historical Bugfix Patterns** | Conditional | Asks: "Scan repos now or skip?" Needs 10+ hotfixes for meaningful patterns. Runs `prompts/setup/generate-bugfix-patterns.md` if chosen |
+| **4.4 JIRA Field Mappings** | Guided | Scans repo directory structures, proposes file path → JIRA component mappings, asks you to confirm or adjust |
+| **4.5 Domain Context Files** | Interactive | For each domain: asks about business rules, regulatory requirements, edge cases, and external integrations |
+| **4.6 False Positive Prevention** | Optional | Asks for known safe code patterns that agents should not flag (e.g., "raw SQL in Reports/ is parameterized via ORM") |
+| **4.7 Final Validation** | Auto-generated | Re-runs `scripts/check-legacy-demo.sh` to catch any leftovers introduced during context generation |
+
+After setup completes, rebuild the VS Code extension and test:
+
+```bash
+cd .vscode-extension && npm install && npm run compile
+npx vsce package --allow-missing-repository
+code --install-extension *.vsix --force
+```
+
+Then reload VS Code (**F1** > "Developer: Reload Window") and verify: type `@<your-prefix>` in Copilot Chat.
 
 ### What Gets Customized
 

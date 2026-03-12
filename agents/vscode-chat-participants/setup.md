@@ -83,11 +83,12 @@ Phase 2: Generate — Automated file updates
         |  - Create report directories
         |
         v
-Phase 3: Verify — Scan for inconsistencies
-        |  - Search for leftover "HealthBridge" references
-        |  - Validate all agent prefixes are consistent
-        |  - Check workspace file matches setup scripts
-        |  - Report skeleton files that need manual content
+Phase 3: Verify — Automated legacy scan + consistency checks
+        |  - Run `scripts/check-legacy-demo.sh --fix-plan`
+        |  - Auto-fix any leftover DEMO references found
+        |  - Re-run script until clean
+        |  - Validate agent prefixes, workspace file, context file refs
+        |  - Report skeleton files that need content
         |
         v
 Phase 4: Context Customization — Interactive guided setup
@@ -96,9 +97,10 @@ Phase 4: Context Customization — Interactive guided setup
         |  - Generate bugfix patterns (if enough hotfix history)
         |  - Fill JIRA field mappings (guided from repo structure)
         |  - Domain context files (guided with key questions)
+        |  - Final validation: re-run `scripts/check-legacy-demo.sh`
         |
         v
-Setup Complete — All context files populated
+Setup Complete — All context files populated, legacy scan clean
 ```
 
 ---
@@ -176,15 +178,19 @@ Delete leftover files from the DEMO template:
 
 ## Phase 3 Details: Verify
 
-### Leftover Reference Check
+### Legacy Reference Scan (Automated)
 
-Search all updated files for these patterns (should return zero matches):
-- `HealthBridge` (case-sensitive)
-- `healthbridge` (case-insensitive, excluding this setup agent)
-- `@hb-` (old agent prefix)
-- `HM-14200`, `HBP-5001`, `HMM-3200` (old example tickets)
+Run the legacy reference scanner to detect leftover DEMO/HealthBridge content across all files:
 
-Report any leftover references with file:line for manual review.
+```bash
+chmod +x scripts/check-legacy-demo.sh
+./scripts/check-legacy-demo.sh --fix-plan
+```
+
+The script checks 6 categories: project names, ticket prefixes, repository names, domain terms, DEMO template references, and E2E/mobile framework references. It also detects deleted files still referenced in active documentation.
+
+- **0 hits** → Proceed to consistency checks
+- **>0 hits** → Auto-fix affected files using the fix-plan output, then re-run the script until clean
 
 ### Consistency Checks
 
@@ -301,6 +307,17 @@ Type your patterns (one per line), or "skip" to fill in later.
 If provided: Update `context/code-review-false-positive-prevention.md`
 If skipped: Leave existing file as-is
 
+### 4.7 Final Validation (Automated)
+
+Run the legacy reference scanner one final time to catch leftovers introduced during Phase 4 (context generation can re-introduce domain terms or repo names from templates):
+
+```bash
+./scripts/check-legacy-demo.sh
+```
+
+- **0 hits** → Proceed to completion summary
+- **>0 hits** → Fix remaining references, re-run until clean
+
 ---
 
 ## Completion Summary
@@ -316,7 +333,7 @@ Configuration:
 
 Files Updated: [count]
 Files Created: [count]
-Leftover references: [count] (should be 0)
+Legacy scan: ✓ Clean (0 hits) / ⚠ [count] references remain
 
 Context Files:
   ✓ context/[project]-repository-dependencies.md — generated from repo scan

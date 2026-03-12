@@ -522,27 +522,38 @@ In `prompts/acceptance-tests/acceptance-tests-prompt.md`, the "E2E Coverage Anal
 
 ## Phase 3: Verification Logic
 
-### 3.1 Leftover Reference Scan
+### 3.1 Legacy Reference Scan (Automated)
 
-Search all files (excluding `agents/vscode-chat-participants/setup.md` and `prompts/setup/`) for:
-- `HealthBridge` (case-sensitive)
-- `@hb-` (old prefix)
-- `hb-qa-agents` (old extension ID)
-- `HM-14200`, `HBP-5001`, `HMM-3200` (old example tickets)
-- `This is a demo project` (DEMO banner that should have been removed)
-- `Adapt to Your Project` (DEMO section that should have been removed)
-- `demo/reference implementation` (DEMO note that should have been removed)
+Run the legacy reference scanner script to detect leftover DEMO/HealthBridge content:
 
-Report format:
+```bash
+chmod +x scripts/check-legacy-demo.sh
+./scripts/check-legacy-demo.sh --fix-plan
 ```
-Leftover references found:
-  ⚠ <file>:<line> — "<matched text>"
-  ⚠ <file>:<line> — "<matched text>"
 
-OR
+The script checks 6 categories: project names, ticket prefixes, repository names, domain terms, DEMO template references, and E2E/mobile framework references. It also detects deleted files still referenced in active documentation.
 
-✓ No leftover references found — clean!
+**Interpret the output:**
+- **0 hits** → Phase 3 passes, proceed to consistency checks (3.2)
+- **>0 hits** → Auto-fix what you can (find-and-replace failures, stale references), then **re-run the script** to verify. Repeat until clean or only intentional references remain.
+
+**Auto-fix strategy by category:**
+
+| Category | Auto-Fix Action |
+|----------|----------------|
+| `PROJECT_NAME` | Re-run global find-and-replace from Section 2.1 on affected files |
+| `TICKET_PREFIX` | Replace old prefixes with collected prefixes in affected files |
+| `REPO_NAME` | Replace old repo names with collected repo names in affected files |
+| `DOMAIN_TERM` | Replace healthcare examples with project-relevant examples (use domains from Q5.1) |
+| `DEMO_REF` | Remove or rewrite DEMO-specific instructions in affected files |
+| `E2E_LEGACY` | If no-E2E mode (Q4.1 = "none"): apply Section 2.7 to affected files. If E2E configured: replace with collected framework names |
+
+**After auto-fix, re-run:**
+```bash
+./scripts/check-legacy-demo.sh
 ```
+
+If hits remain that cannot be auto-fixed (e.g., in setup agent's own files), report them to the user with file:line references.
 
 ### 3.2 Consistency Validation
 
@@ -668,6 +679,37 @@ Type your patterns (one per line), or "skip" to fill in later.
 
 If provided: Update `context/code-review-false-positive-prevention.md`
 If skipped: Leave existing default file
+
+### 4.7 Final Validation (Automated)
+
+Run the legacy reference scanner one final time to catch any leftovers introduced during Phase 4 (context generation can re-introduce domain terms or repo names from templates):
+
+```bash
+./scripts/check-legacy-demo.sh
+```
+
+**Interpret the output:**
+- **0 hits** → Setup is fully clean. Proceed to completion summary.
+- **>0 hits** → Fix remaining references. These are typically:
+  - Domain terms in newly generated context files (replace healthcare examples with project domains)
+  - DEMO template references copied into generated content
+  - E2E framework names in generated coverage maps (if no-E2E mode)
+
+After fixing, re-run until clean:
+```bash
+./scripts/check-legacy-demo.sh
+```
+
+**Report to user:**
+```
+Final validation: ✓ Clean — no legacy DEMO references found.
+
+OR
+
+Final validation: ⚠ X references remain in Y files.
+These are [intentional/need manual review]:
+  <file>:<line> — "<matched text>"
+```
 
 ---
 
