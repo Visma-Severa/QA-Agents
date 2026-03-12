@@ -137,7 +137,7 @@ Follow the question flow defined in `prompts/setup/setup-prompt.md`. Store all a
 | `setup/update.ps1` | Same as update.sh |
 | `agents/vscode-chat-participants/*.md` | Agent prefix in headers, example ticket IDs, context file refs |
 | `prompts/**/*.md` | Project name, repo names, E2E repo paths, example tickets, project descriptions. Rebuild repo-specific tables and per-repo sections (e.g., dev-estimation per-repo breakdown) |
-| `README.md` | Project name, repo tables, examples, setup instructions |
+| `README.md` **(last)** | Project name, repo tables, examples. Remove DEMO-only sections (banner, Adapt to Your Project, Note, footer) |
 
 ### Skeleton Context Files to Create
 
