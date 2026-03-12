@@ -242,467 +242,33 @@ User Input (ticket ID, error, release name)
 
 ---
 
-## Quick Start (Automated Setup)
+## Quick Start
 
-If you are setting up for the first time, use the automated setup script. It clones all 10 repos, copies config files (workspace file, `.github/copilot-instructions.md`, `.cursorrules`, `.claude/CLAUDE.md`), creates report directories, and builds + installs the VS Code extension -- all in one step.
+This is a **reference project** — you don't need to install or run it. Browse the repository to understand the structure, then adapt it to your own project.
 
-### First-Time Setup
-
-**Windows -- Easy (double-click):**
-
-1. Open PowerShell and run these lines to clone the repository:
-   ```powershell
-   mkdir HealthBridge; cd HealthBridge
-   git clone https://github.com/visma-kira-komshilova/DEMO-QA-Agents
-   ```
-2. Open the folder `HealthBridge\DEMO-QA-Agents\setup\` in File Explorer
-3. **Double-click `setup.bat`** -- it handles everything automatically
-4. When it finishes, double-click `HealthBridge.code-workspace` in the `HealthBridge\` folder to open VS Code
-
-**Windows -- PowerShell (manual):**
-```powershell
-# Create workspace directory and clone QA Agents repo first
-mkdir HealthBridge; cd HealthBridge
-git clone https://github.com/visma-kira-komshilova/DEMO-QA-Agents
-cd DEMO-QA-Agents
-
-# Run setup (use -ExecutionPolicy Bypass if scripts are blocked)
-powershell -ExecutionPolicy Bypass -File .\setup\setup.ps1
-```
-
-> **Windows: "running scripts is disabled" error?** PowerShell blocks script execution by default. Use the `powershell -ExecutionPolicy Bypass -File` prefix shown above, which temporarily allows the script to run without changing your system settings. Alternatively, you can enable scripts permanently for your user by running `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` in an **Administrator** PowerShell.
-
-**macOS/Linux:**
-```bash
-# Create workspace directory and clone QA Agents repo first
-mkdir HealthBridge && cd HealthBridge
-git clone https://github.com/visma-kira-komshilova/DEMO-QA-Agents
-cd DEMO-QA-Agents
-chmod +x setup/setup.sh
-./setup/setup.sh
-```
-
-The script handles everything automatically:
-- Clones all 10 repositories (skips any that already exist)
-- Copies `HealthBridge.code-workspace` to workspace root
-- Copies AI config files (`.github/copilot-instructions.md`, `.cursorrules`, `.claude/CLAUDE.md`) to workspace root
-- Creates `reports/` directory with all subdirectories
-- Builds and installs the VS Code chat extension
-- Copies `update.bat` to workspace root (for easy future updates on Windows)
-
-**After setup completes, open the workspace:**
+### Explore the Demo
 
 ```bash
-# Navigate to the workspace root (parent of all repos)
-cd ..
-
-# Open in VS Code
-code HealthBridge.code-workspace
-
-# Or open in Cursor
-cursor HealthBridge.code-workspace
-```
-
-> **First time opening?** VS Code may show "File not found" errors for previously cached tabs -- just close them (click X). The workspace itself is working correctly.
-
-> **Reload after extension install.** Press **F1** > type **"Developer: Reload Window"** > Enter. Then type `@hb` in Copilot Chat to verify the agents are available.
-
----
-
-### Updating
-
-When the QA Agents repo has new changes, update with one of these methods:
-
-**Windows -- Easy (double-click):**
-
-After setup, you will have an `update.bat` file in your workspace root folder (next to `HealthBridge.code-workspace`). **Double-click it** to update everything. No terminal commands needed.
-
-**From VS Code (any platform):**
-
-Press **F1** > type **"Tasks: Run Task"** > select **"QA Agents: Update"**. This works regardless of which folder you have open in the workspace.
-
-**From terminal:**
-
-| Platform | Command |
-|----------|---------|
-| macOS/Linux | `./DEMO-QA-Agents/setup/update.sh` |
-| Windows | `powershell -ExecutionPolicy Bypass -File DEMO-QA-Agents\setup\update.ps1` |
-
-This pulls latest changes, syncs AI config files (CLAUDE.md, .cursorrules, copilot-instructions.md) to the workspace root, and rebuilds the VS Code extension. Use `--no-extension` (or `-NoExtension` on Windows) to skip the extension rebuild.
-
-> All scripts use dynamic path resolution -- no hardcoded paths, safe to re-run, and work from any directory.
-
-For manual step-by-step instructions, see the detailed setup guide below.
-
----
-
-## Setup Guide (Manual)
-
-### Step 1: Create the Workspace Directory
-
-Create a parent directory that will hold all HealthBridge repositories:
-
-**macOS/Linux (bash/zsh):**
-```bash
-mkdir HealthBridge && cd HealthBridge
-```
-
-**Windows (PowerShell):**
-```powershell
-mkdir HealthBridge; cd HealthBridge
-```
-
-**Windows (Git Bash -- Recommended):**
-```bash
-mkdir HealthBridge && cd HealthBridge
-```
-
-> **Windows Users:** Use Git Bash (comes with Git for Windows) instead of PowerShell for seamless compatibility with all commands in this guide.
-
-### Step 2: Clone All Repositories
-
-Clone all 10 repositories into the workspace directory:
-
-```bash
-# Core application repositories
-git clone https://github.com/HealthBridge/HealthBridge-Web.git
-git clone https://github.com/HealthBridge/HealthBridge-Portal.git
-git clone https://github.com/HealthBridge/HealthBridge-Api.git
-git clone https://github.com/HealthBridge/HealthBridge-Mobile.git
-
-# Microservice API repositories
-git clone https://github.com/HealthBridge/HealthBridge-Claims-Processing.git
-git clone https://github.com/HealthBridge/HealthBridge-Prescriptions-Api.git
-
-# Test automation repositories
-git clone https://github.com/HealthBridge/HealthBridge-Selenium-Tests.git
-git clone https://github.com/HealthBridge/HealthBridge-E2E-Tests.git
-git clone https://github.com/HealthBridge/HealthBridge-Mobile-Tests.git
-
-# QA Agents repository
 git clone https://github.com/visma-kira-komshilova/DEMO-QA-Agents
 ```
 
-Your directory should now look like:
-
-```
-HealthBridge/
-├── HealthBridge-Web/
-├── HealthBridge-Portal/
-├── HealthBridge-Api/
-├── HealthBridge-Mobile/
-├── HealthBridge-Claims-Processing/
-├── HealthBridge-Prescriptions-Api/
-├── HealthBridge-Selenium-Tests/
-├── HealthBridge-E2E-Tests/
-├── HealthBridge-Mobile-Tests/
-└── DEMO-QA-Agents/
-```
-
-### Step 3: Open the Workspace
-
-A VS Code workspace file allows you to open all repositories as a single, unified workspace. The file is included in the QA Agents repository -- copy it to the parent directory and open it:
-
-**macOS/Linux:**
-```bash
-# Copy workspace file to parent directory
-cp DEMO-QA-Agents/HealthBridge.code-workspace .
-
-# Open in VS Code
-code HealthBridge.code-workspace
-
-# Or open in Cursor
-cursor HealthBridge.code-workspace
-```
-
-**Windows (PowerShell):**
-```powershell
-# Copy workspace file to parent directory
-Copy-Item -Path "DEMO-QA-Agents\HealthBridge.code-workspace" -Destination "."
-
-# Open in VS Code
-code HealthBridge.code-workspace
-
-# Or open in Cursor
-cursor HealthBridge.code-workspace
-```
-
-**Windows (Git Bash):**
-```bash
-# Same as macOS/Linux
-cp DEMO-QA-Agents/HealthBridge.code-workspace .
-code HealthBridge.code-workspace
-```
-
-The workspace file (`HealthBridge.code-workspace`) configures:
-- All repositories as workspace folders
-- File exclusions (`.git`, `.DS_Store`)
-- GitHub Copilot instruction file reference
-- Recommended extensions (GitHub Copilot, GitHub Copilot Chat)
-
-> **"File not found" errors on first open?** VS Code tries to restore previously open tabs from its cache. Simply close the error tabs (click X) -- the workspace itself is working correctly. This is normal when opening a shared workspace file for the first time.
-
-> **Creating from scratch?** If the workspace file is not available, open VS Code, use **File > Add Folder to Workspace** for each repository, then **File > Save Workspace As...** and save as `HealthBridge.code-workspace` in the parent directory.
-
-### Step 4: Configure AI Instructions
-
-The AI agents rely on instruction files that tell your IDE how to behave -- branch prefix mappings, bugfix pattern detection rules, E2E test search strategies, and output format rules. Your IDE reads these automatically from specific locations at the workspace root.
-
-```
-HealthBridge/                              <-- Workspace root
-├── .github/
-│   └── copilot-instructions.md            <-- VS Code/Copilot reads from here
-├── .cursorrules                           <-- Cursor reads from here
-├── .claude/
-│   └── CLAUDE.md                          <-- Claude Code reads from here
-├── DEMO-QA-Agents/                        <-- Source of truth
-│   ├── .github/
-│   │   └── copilot-instructions.md        <-- COPY FROM HERE
-│   ├── .cursorrules                       <-- COPY FROM HERE
-│   └── .claude/
-│       └── CLAUDE.md                      <-- COPY FROM HERE
-├── HealthBridge-Web/
-├── HealthBridge-Portal/
-└── ...
-```
-
-#### For GitHub Copilot (VS Code)
-
-Copilot reads instructions from `.github/copilot-instructions.md` at the workspace root:
-
-**macOS/Linux:**
-```bash
-# From workspace root (HealthBridge/)
-mkdir -p .github
-cp DEMO-QA-Agents/.github/copilot-instructions.md .github/
-```
-
-**Windows (PowerShell):**
-```powershell
-# From workspace root (HealthBridge/)
-New-Item -ItemType Directory -Force -Path ".github"
-Copy-Item -Path "DEMO-QA-Agents\.github\copilot-instructions.md" -Destination ".github\"
-```
-
-**What this provides:**
-- Branch prefix to repository mapping (`HM-*` to HealthBridge-Web, `HBP-*` to HealthBridge-Portal, `HMM-*` to Mobile)
-- Historical bugfix pattern detection rules (NULL handling, edge cases, authorization gaps)
-- E2E test search strategy (keyword-first, cross-framework)
-- Agent output format and word limit rules
-- Cross-platform command guidelines (Windows/macOS/Linux)
-
-#### For Cursor
-
-Cursor reads instructions from `.cursorrules` at the workspace root:
-
-**macOS/Linux:**
-```bash
-# From workspace root (HealthBridge/)
-cp DEMO-QA-Agents/.cursorrules .
-```
-
-**Windows (PowerShell):**
-```powershell
-# From workspace root (HealthBridge/)
-Copy-Item -Path "DEMO-QA-Agents\.cursorrules" -Destination "."
-```
-
-**What this provides:**
-- Same agent behavior and analysis rules as Copilot instructions
-- Cursor-specific formatting (handoffs, sub-agent spawning)
-- Prompt template references for consistent report generation
-
-#### For Claude Code
-
-Claude Code reads instructions from `.claude/CLAUDE.md` at the workspace root:
-
-**macOS/Linux:**
-```bash
-# From workspace root (HealthBridge/)
-mkdir -p .claude
-cp DEMO-QA-Agents/.claude/CLAUDE.md .claude/
-```
-
-**Windows (PowerShell):**
-```powershell
-# From workspace root (HealthBridge/)
-New-Item -ItemType Directory -Force -Path ".claude"
-Copy-Item -Path "DEMO-QA-Agents\.claude\CLAUDE.md" -Destination ".claude\"
-```
-
-**What this provides:**
-- Same agent behavior, analysis rules, and output formats as Copilot/Cursor instructions
-- Branch prefix detection, bugfix pattern rules, E2E search strategies
-- Agent execution protocol (auto-detect repos, no confirmations, complete delivery)
-
-> **Note:** The automated setup and update scripts handle this automatically. Manual copy is only needed for first-time manual setup.
-
-#### Both IDEs at Once (Recommended)
-
-**macOS/Linux:**
-```bash
-# From workspace root (HealthBridge/)
-mkdir -p .github .claude
-cp DEMO-QA-Agents/.github/copilot-instructions.md .github/
-cp DEMO-QA-Agents/.cursorrules .
-cp DEMO-QA-Agents/.claude/CLAUDE.md .claude/
-```
-
-**Windows (PowerShell):**
-```powershell
-# From workspace root (HealthBridge/)
-New-Item -ItemType Directory -Force -Path ".github"
-New-Item -ItemType Directory -Force -Path ".claude"
-Copy-Item -Path "DEMO-QA-Agents\.github\copilot-instructions.md" -Destination ".github\"
-Copy-Item -Path "DEMO-QA-Agents\.cursorrules" -Destination "."
-Copy-Item -Path "DEMO-QA-Agents\.claude\CLAUDE.md" -Destination ".claude\"
-```
-
-#### Keeping Configuration Updated
-
-When AI instruction files are updated in the QA Agents repository, run the update script to pull latest changes and sync all configuration files to the workspace root:
-
-| Platform | Command |
-|----------|---------|
-| macOS/Linux | `./DEMO-QA-Agents/setup/update.sh` |
-| Windows | `.\DEMO-QA-Agents\setup\update.ps1` |
-
-The script:
-1. Pulls latest changes from the QA Agents repo (`git pull --ff-only`)
-2. Copies updated files to workspace root (only if changed):
-   - `.claude/CLAUDE.md` (Claude Code)
-   - `.cursorrules` (Cursor)
-   - `.github/copilot-instructions.md` (GitHub Copilot)
-   - `HealthBridge.code-workspace`
-3. Rebuilds and reinstalls the VS Code chat extension
-4. Reports what was updated and how to apply changes in each tool
-
-Use `--no-pull` (or `-NoPull` on Windows) to skip git pull and only sync files.
-
-### Step 5: Install the VS Code Chat Extension
-
-The QA Agents repository includes a **VS Code extension** that registers custom chat participants (`@hb-*` agents) as native GitHub Copilot Chat integrations.
-
-#### Why Install the Extension?
-
-Without the extension, you would need to manually copy-paste agent prompt files into the chat window every time you want to run an analysis. The extension provides:
-
-| Capability | Without Extension | With Extension |
-|------------|------------------|----------------|
-| **Agent invocation** | Copy-paste prompt file into chat | Type `@hb-code-review HM-14200` directly |
-| **Repository sync** | Manually `git pull` each repo before analysis | Automatic safe sync before every agent run |
-| **Manual sync** | Run shell script or pull each repo | Command Palette: "HealthBridge QA: Sync Repositories" |
-| **Sync cooldown** | N/A | 5-minute cooldown prevents redundant syncs |
-
-The extension's **automatic repository sync** ensures agents always analyze the latest code. It is safe by design -- worst case, a repo is skipped, never corrupted:
-
-| Safety Gate | Condition | Result |
-|-------------|-----------|--------|
-| Folder exists | Repository not cloned | Skipped |
-| On default branch | Developer on feature branch | Skipped |
-| Clean working tree | Uncommitted local changes | Skipped |
-| Fast-forward only | Would cause merge conflicts | Skipped with warning |
-
-**This means:**
-- Developers on feature branches are never affected (their repos are skipped)
-- Users with local changes are never affected (dirty repos are skipped)
-- QA users on default branches with clean repos get auto-synced seamlessly
-
-#### Install
-
-**macOS:**
-```bash
-# Navigate to extension directory (from workspace root)
-cd DEMO-QA-Agents/.vscode-extension
-
-# Install dependencies and compile
-npm install
-npm run compile
-
-# Package the extension
-echo -e "y\ny" | npx vsce package --allow-missing-repository
-
-# Install in VS Code
-"/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code" --install-extension hb-qa-agents-1.0.0.vsix --force
-```
-
-**Windows (PowerShell):**
-```powershell
-# Navigate to extension directory (from workspace root)
-cd DEMO-QA-Agents\.vscode-extension
-
-# Install dependencies and compile
-npm install
-npm run compile
-
-# Package the extension (press 'y' twice when prompted)
-npx vsce package --allow-missing-repository
-
-# Install in VS Code
-code --install-extension hb-qa-agents-1.0.0.vsix --force
-```
-
-**Windows (Git Bash):**
-```bash
-# Navigate to extension directory (from workspace root)
-cd DEMO-QA-Agents/.vscode-extension
-
-# Install dependencies and compile
-npm install
-npm run compile
-
-# Package the extension
-echo -e "y\ny" | npx vsce package --allow-missing-repository
-
-# Install in VS Code
-code --install-extension hb-qa-agents-1.0.0.vsix --force
-```
-
-> **Note:** On Windows, the `code` command is automatically added to PATH during VS Code installation. On macOS, you need to manually enable it via **Command Palette** > **"Shell Command: Install 'code' command in PATH"** (or use the full path as shown above).
-
-#### Reload VS Code
-
-1. Press **F1** or click **View > Command Palette**
-2. Type: **"Developer: Reload Window"**
-3. Press Enter
-
-#### Verify Installation
-
-Type `@hb` in GitHub Copilot Chat. You should see these agents:
-
-| Agent | Purpose | Example Usage |
-|-------|---------|---------------|
-| `@hb-code-review` | Analyze branches for code quality and test coverage | `@hb-code-review HM-14200` |
-| `@hb-acceptance-tests` | Generate comprehensive acceptance test scenarios | `@hb-acceptance-tests HM-14200` |
-| `@hb-bug-report` | Generate ticket-ready bug reports from errors | `@hb-bug-report [error details]` |
-| `@hb-bugfix-rca` | Root cause analysis for bugfixes | `@hb-bugfix-rca HM-14200 Release-4/2026` |
-| `@hb-requirements-analysis` | Analyze requirements with health domain compliance | `@hb-requirements-analysis HM-14200` |
-| `@hb-release-analysis` | Analyze releases for risk and coverage | `@hb-release-analysis release/Release-04/2026` |
-| `@hb-feedback` | Interactive developer feedback on code review findings | Invoked after `@hb-code-review` with `interactive` keyword |
-| `@hb-setup` | Interactive wizard to adapt framework to your project | `@hb-setup` |
-
-You can also trigger a manual sync anytime: **F1** > **"HealthBridge QA: Sync Repositories"**
-
-#### Troubleshooting (Extension)
-
-| Problem | Solution |
-|---------|----------|
-| Agents not showing up | Check Extensions panel for "HealthBridge QA Agents", reload VS Code (**F1** > "Developer: Reload Window") |
-| Agents not showing up (Windows) | Setup script may have crashed before installing. See **"Extension packaged but not installed"** below |
-| "No language model available" | Ensure GitHub Copilot extension is installed with active subscription |
-| Sync skipping all repos | Normal if you are on feature branches -- repos sync when you return to default branch |
-| AI does not recognize branch prefixes | Re-copy config files: `cp DEMO-QA-Agents/.github/copilot-instructions.md .github/` |
-| Cursor not following prompts | Ensure `.cursorrules` exists at workspace root |
-
-**Extension packaged but not installed (Windows)**
-
-If the setup script output shows `DONE Packaged: ...hb-qa-agents-1.0.0.vsix` but does NOT show `OK Extension installed via 'code' CLI`, the extension was built but never installed. This can happen when Node.js deprecation warnings cause PowerShell to abort the script early.
-
-Fix -- install the extension manually:
-```powershell
-code --install-extension "DEMO-QA-Agents\.vscode-extension\hb-qa-agents-1.0.0.vsix" --force
-```
-Then reload VS Code: **F1** > **"Developer: Reload Window"**
+Key things to look at:
+
+| What | Where | Why |
+|------|-------|-----|
+| Agent definitions | `agents/vscode-chat-participants/` | How each QA agent is configured |
+| Prompt templates | `prompts/` | Analysis logic, scoring models, report structures |
+| Context files | `context/` | Project knowledge that makes agents smart about your domain |
+| Example reports | `reports/` | Sample output from each agent |
+| IDE config files | `.claude/CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md` | How agents receive instructions in each IDE |
+| VS Code extension | `.vscode-extension/` | Chat participant integration for GitHub Copilot |
+| Setup scripts | `setup/` | Automated bootstrap, setup, and update scripts |
+
+> **The HealthBridge application repositories** (HealthBridge-Web, HealthBridge-Api, etc.) referenced throughout the documentation are **fictional**. They illustrate the kind of multi-repository workspace these agents are designed for.
+
+### Use It for Your Project
+
+Ready to adapt this framework to your own repositories? See [Adapt to Your Project](#adapt-to-your-project) for the step-by-step workflow — clone the demo, run the bootstrap script, and the setup agent rewrites all configuration for your project automatically.
 
 ---
 
@@ -1326,7 +892,36 @@ The `historical-bugfix-patterns.md` file powers **predictive bug detection** —
 
 **Start after your first 10-15 hotfixes.** You need enough data to see patterns. Before that, use the starter template (created by the bootstrap/setup agent) with placeholder percentages.
 
-#### How to Identify Patterns
+#### Generate with the AI Agent (Recommended)
+
+A dedicated generation prompt automates the entire process — it scans your git history, finds hotfix branches/commits, analyzes code diffs, categorizes root causes, calculates percentages, and writes the output file:
+
+```
+prompts/setup/generate-bugfix-patterns.md
+```
+
+**How to run:**
+
+| IDE | How |
+|-----|-----|
+| **VS Code / Cursor** | Open the prompt file, copy its content into the AI chat |
+| **Claude Code** | `cat prompts/setup/generate-bugfix-patterns.md` then ask the AI to run it |
+
+The agent performs these steps automatically:
+1. Searches all repos for hotfix/bugfix branches and commits
+2. Analyzes each hotfix's code diff to determine root cause category
+3. Groups repositories by technology/architecture type
+4. Calculates percentages per category per repo type
+5. Writes `context/historical-bugfix-patterns.md` with project-specific detection focus
+
+**Re-run anytime** — safe to re-run quarterly or after major incidents. Overwrites previous output with fresh analysis.
+
+#### How It Works (Under the Hood)
+
+For reference, this is the methodology the agent follows. You can also use these steps manually if you prefer:
+
+<details>
+<summary>Manual methodology (click to expand)</summary>
 
 **Step 1: Collect hotfix data.** For each production hotfix in the last 6-12 months, record:
 
@@ -1379,6 +974,8 @@ Example: 40 hotfixes across 3 C# microservice repos
 
 **Step 4: Write your pattern table.** Update `context/historical-bugfix-patterns.md` with one table per repository type. Follow the format in the demo file — each row needs: Pattern name, percentage, and Detection Focus (specific examples from your codebase).
 
+</details>
+
 #### Separate Tables per Repository Type
 
 Different repository types produce different bug patterns. **Always create separate tables** for:
@@ -1393,9 +990,9 @@ Different repository types produce different bug patterns. **Always create separ
 
 #### Keeping Patterns Current
 
-- **Review quarterly** — Re-analyze the last quarter's hotfixes and update percentages
-- **After major incidents** — Add the new pattern immediately if it reveals a category not yet tracked
-- **When onboarding new repos** — Start with the closest existing pattern table, then refine after 10+ hotfixes
+- **Review quarterly** — Re-run the generation prompt to update percentages with new hotfix data
+- **After major incidents** — Re-run to capture new pattern categories
+- **When onboarding new repos** — Start with the closest existing pattern table, then re-run after 10+ hotfixes
 
 ---
 
