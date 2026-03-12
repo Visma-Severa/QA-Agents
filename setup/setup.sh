@@ -69,35 +69,35 @@ TOTAL_STEPS=6
 print_step 1 "Cloning repositories"
 echo ""
 
+# Each entry: "repo-name=clone-url"
 REPOS=(
     # Core application repositories
-    "HealthBridge-Web"
-    "HealthBridge-Portal"
-    "HealthBridge-Api"
-    "HealthBridge-Mobile"
+    "HealthBridge-Web=https://github.com/healthbridge-org/HealthBridge-Web.git"
+    "HealthBridge-Portal=https://github.com/healthbridge-org/HealthBridge-Portal.git"
+    "HealthBridge-Api=https://github.com/healthbridge-org/HealthBridge-Api.git"
+    "HealthBridge-Mobile=https://github.com/healthbridge-org/HealthBridge-Mobile.git"
     # Microservice API repositories
-    "HealthBridge-Claims-Processing"
-    "HealthBridge-Prescriptions-Api"
+    "HealthBridge-Claims-Processing=https://github.com/healthbridge-org/HealthBridge-Claims-Processing.git"
+    "HealthBridge-Prescriptions-Api=https://github.com/healthbridge-org/HealthBridge-Prescriptions-Api.git"
     # Test automation repositories
-    "HealthBridge-Selenium-Tests"
-    "HealthBridge-E2E-Tests"
-    "HealthBridge-Mobile-Tests"
-    # QA Agents repository
-    "DEMO-QA-Agents"
+    "HealthBridge-Selenium-Tests=https://github.com/healthbridge-org/HealthBridge-Selenium-Tests.git"
+    "HealthBridge-E2E-Tests=https://github.com/healthbridge-org/HealthBridge-E2E-Tests.git"
+    "HealthBridge-Mobile-Tests=https://github.com/healthbridge-org/HealthBridge-Mobile-Tests.git"
 )
 
-GITHUB_ORG="https://github.com/healthbridge-org"
 cloned=0
 skipped=0
 
-for repo in "${REPOS[@]}"; do
+for entry in "${REPOS[@]}"; do
+    repo="${entry%%=*}"
+    url="${entry#*=}"
     target="$WORKSPACE_ROOT/$repo"
     if [ -d "$target" ]; then
         print_skip "$repo (already exists)"
         skipped=$((skipped + 1))
     else
         echo -e "  Cloning ${BOLD}$repo${NC}..."
-        if git clone "$GITHUB_ORG/$repo.git" "$target" 2>/dev/null; then
+        if git clone "$url" "$target" 2>/dev/null; then
             print_ok "$repo"
             cloned=$((cloned + 1))
         else

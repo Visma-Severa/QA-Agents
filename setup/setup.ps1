@@ -68,28 +68,29 @@ $TotalSteps = 6
 Print-Step 1 $TotalSteps "Cloning repositories"
 Write-Host ""
 
+# Each entry: "repo-name=clone-url"
 $Repos = @(
     # Core application repositories
-    "HealthBridge-Web",
-    "HealthBridge-Portal",
-    "HealthBridge-Api",
-    "HealthBridge-Mobile",
+    "HealthBridge-Web=https://github.com/healthbridge-org/HealthBridge-Web.git",
+    "HealthBridge-Portal=https://github.com/healthbridge-org/HealthBridge-Portal.git",
+    "HealthBridge-Api=https://github.com/healthbridge-org/HealthBridge-Api.git",
+    "HealthBridge-Mobile=https://github.com/healthbridge-org/HealthBridge-Mobile.git",
     # Microservice API repositories
-    "HealthBridge-Claims-Processing",
-    "HealthBridge-Prescriptions-Api",
+    "HealthBridge-Claims-Processing=https://github.com/healthbridge-org/HealthBridge-Claims-Processing.git",
+    "HealthBridge-Prescriptions-Api=https://github.com/healthbridge-org/HealthBridge-Prescriptions-Api.git",
     # Test automation repositories
-    "HealthBridge-Selenium-Tests",
-    "HealthBridge-E2E-Tests",
-    "HealthBridge-Mobile-Tests",
-    # QA Agents repository
-    "DEMO-QA-Agents"
+    "HealthBridge-Selenium-Tests=https://github.com/healthbridge-org/HealthBridge-Selenium-Tests.git",
+    "HealthBridge-E2E-Tests=https://github.com/healthbridge-org/HealthBridge-E2E-Tests.git",
+    "HealthBridge-Mobile-Tests=https://github.com/healthbridge-org/HealthBridge-Mobile-Tests.git"
 )
 
-$GithubOrg = "https://github.com/healthbridge-org"
 $Cloned = 0
 $Skipped = 0
 
-foreach ($Repo in $Repos) {
+foreach ($Entry in $Repos) {
+    $Parts = $Entry -split "=", 2
+    $Repo = $Parts[0]
+    $Url = $Parts[1]
     $Target = Join-Path $WorkspaceRoot $Repo
     if (Test-Path $Target) {
         Print-Skip "$Repo (already exists)"
@@ -97,7 +98,7 @@ foreach ($Repo in $Repos) {
     } else {
         Write-Host "  Cloning $Repo..."
         try {
-            git clone "$GithubOrg/$Repo.git" "$Target" 2>$null
+            git clone $Url "$Target" 2>$null
             Print-Ok $Repo
             $Cloned++
         } catch {

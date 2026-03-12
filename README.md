@@ -10,11 +10,55 @@ A centralized repository for AI prompts and agents used across HealthBridge proj
 
 ---
 
+## Table of Contents
+
+- [How It Works](#how-it-works)
+  - [JIRA for Project Management and Bug Tracking](#jira-for-project-management-and-bug-tracking)
+  - [Branch Naming Convention](#branch-naming-convention)
+  - [Release Branch Convention](#release-branch-convention)
+- [Multi-Repository Workspace](#multi-repository-workspace)
+  - [Why Multi-Repository Workspace?](#why-multi-repository-workspace)
+  - [Repositories](#repositories)
+- [Prerequisites](#prerequisites)
+  - [IDE Options](#ide-options)
+  - [Verify Installation](#verify-installation)
+- [Architecture Overview](#architecture-overview)
+  - [Key Design Principles](#key-design-principles)
+- [Available Agents](#available-agents)
+- [Quick Start](#quick-start)
+  - [Explore the Demo](#explore-the-demo)
+  - [Use It for Your Project](#use-it-for-your-project)
+- [Agent Usage Examples](#agent-usage-examples)
+  - [Example 1: Code Review for a Branch](#example-1-code-review-for-a-branch)
+  - [Example 2: Generate Acceptance Tests](#example-2-generate-acceptance-tests)
+  - [Example 3: Bug Report from Error Message](#example-3-bug-report-from-error-message)
+  - [Example 4: Root Cause Analysis for Bugfixes](#example-4-root-cause-analysis-for-bugfixes)
+  - [Example 5: Requirements Analysis Before Development](#example-5-requirements-analysis-before-development)
+  - [Example 6: Release Risk Assessment](#example-6-release-risk-assessment)
+  - [Common Workflows](#common-workflows)
+- [Folder Structure](#folder-structure)
+- [Shared Context Files](#shared-context-files)
+  - [Domain Knowledge Context](#domain-knowledge-context)
+- [Output Locations](#output-locations)
+- [Prompt Templates](#prompt-templates)
+- [Troubleshooting](#troubleshooting)
+  - [Common Issues](#common-issues)
+  - [Verifying Agent Configuration](#verifying-agent-configuration)
+- [Adapt to Your Project](#adapt-to-your-project)
+  - [Setup Workflow (7 Steps)](#setup-workflow-7-steps)
+  - [What Gets Customized](#what-gets-customized)
+  - [What Stays Generic (Do NOT Change)](#what-stays-generic-do-not-change)
+  - [Context Files — Your Project Knowledge](#context-files--your-project-knowledge)
+  - [Building Your Historical Bugfix Patterns](#building-your-historical-bugfix-patterns)
+- [Note](#note)
+
+---
+
 ## How It Works
 
 These agents rely on three foundational assumptions about the development workflow:
 
-### 1. JIRA for Project Management and Bug Tracking
+### JIRA for Project Management and Bug Tracking
 
 All development tasks, bug fixes, and feature requests are tracked as JIRA tickets with unique IDs. Each ticket prefix maps to a set of repositories:
 
@@ -24,7 +68,7 @@ All development tasks, bug fixes, and feature requests are tracked as JIRA ticke
 | `HBP-*` | `HBP-5001` | HealthBridge-Portal |
 | `HMM-*` | `HMM-3200` | HealthBridge-Mobile |
 
-### 2. Branch Naming Convention
+### Branch Naming Convention
 
 **Git branch names must contain the JIRA ticket ID.** This is the mechanism that allows agents to automatically locate the correct branch in any repository when given only a ticket ID.
 
@@ -37,7 +81,7 @@ When a user provides a ticket ID (e.g., `HM-14200`), agents:
 
 This means **the user only needs to provide a ticket ID** — the agents handle repository discovery, branch detection, and analysis automatically.
 
-### 3. Release Branch Convention
+### Release Branch Convention
 
 Releases are managed through **release branches** (e.g., `release/Release-04/2026`). Each release branch aggregates merged feature branches scheduled for that deployment.
 
@@ -96,20 +140,6 @@ The workspace contains **10 repositories** across four categories:
 | Repository | Technology | Default Branch | Description |
 |------------|-----------|---------------|-------------|
 | `DEMO-QA-Agents` | Markdown / TypeScript | `main` | This repository -- AI prompts, agents, and VS Code extension |
-
----
-
-## What's New (v1.0.0)
-
-- **8 specialized agents** covering the full software quality lifecycle + project setup
-- **Predictive bug detection** based on historical hotfix pattern analysis
-- **Interactive developer feedback** with deep analysis workflow
-- **VS Code chat extension** with automatic repository sync
-- **Cross-platform support** for macOS, Windows, and Linux
-- **Multi-IDE support** for Claude Code, Cursor, and VS Code with GitHub Copilot
-- **10-repository workspace** with auto-detection from branch prefixes
-
-See the full [CHANGELOG.md](CHANGELOG.md) for details.
 
 ---
 
@@ -648,6 +678,7 @@ Agents read shared context files from `context/` before analysis to improve accu
 | **Ticket Field Mappings** | `context/jira-field-mappings.md` | Bug Report, Release | Auto-detects ticket components from file paths |
 | **False Positive Prevention** | `context/code-review-false-positive-prevention.md` | Code Review | 6 rules: framework safety nets, data flow guarantees, standard patterns, tool verification |
 | **Repository Dependencies** | `context/healthbridge-repository-dependencies.md` | All agents | Consumer/Provider dependency map, blast radius, shared databases |
+| **Historical Bugfix Patterns** | `context/historical-bugfix-patterns.md` | Code Review, Bugfix RCA | RCA-derived bugfix patterns by repo type for predictive bug detection |
 
 ### Domain Knowledge Context
 
@@ -657,6 +688,7 @@ Domain context files provide health management regulatory, business, and complia
 |--------------|------|--------|-----------------|
 | **Prescriptions & Medications** | `context/domain-prescriptions.md` | Rx & Pharmacy | prescription, medication, refill, dosage, controlled substance, pharmacy, DEA |
 | **Patient Records** | `context/domain-patient-records.md` | Medical Records | patient, chart, diagnosis, ICD, medical history, HIPAA, records |
+| **Staff Scheduling** | `context/domain-staff-scheduling.md` | Workforce | scheduling, shift, roster, staff, availability, overtime |
 
 ---
 
@@ -816,6 +848,8 @@ The **Setup Agent** walks you through customization interactively:
 ```
 @hb-setup
 ```
+
+> **Important:** After the setup agent asks its first question, **clear `@hb-setup` from the input field** before typing your answer. If `@hb-setup` remains in the input, each reply will restart the setup from the beginning instead of continuing the conversation.
 
 It asks questions about your project, then updates all configuration files automatically:
 
@@ -993,62 +1027,6 @@ Different repository types produce different bug patterns. **Always create separ
 - **Review quarterly** — Re-run the generation prompt to update percentages with new hotfix data
 - **After major incidents** — Re-run to capture new pattern categories
 - **When onboarding new repos** — Start with the closest existing pattern table, then re-run after 10+ hotfixes
-
----
-
-## Contributing
-
-### Adding New Agents
-
-1. Create agent definition file in `agents/vscode-chat-participants/`
-2. Define the agent's purpose, inputs, outputs, and execution protocol
-3. Create prompt template in `prompts/<agent-name>/`
-4. Register the agent in `.vscode-extension/src/extension.ts`
-5. Update this README with the new agent
-
-### Adding New Context Files
-
-1. Create context file in `context/`
-2. Follow the naming convention: `domain-<area>.md` for domain knowledge
-3. Add trigger keywords for auto-detection
-4. Update the shared context table in `.claude/CLAUDE.md` and config files
-
-### Modifying Templates
-
-1. Edit template in `prompts/<category>/<template>.md`
-2. Ensure all agents referencing the template are updated
-3. Test the template manually with a real ticket before committing
-4. Run the update script to sync config files: `./setup/update.sh`
-
-### Best Practices
-
-- Keep prompts focused on specific tasks
-- Include clear input/output specifications
-- Add example usage in each prompt
-- Reference domain context files for health management compliance
-- Follow existing naming conventions for consistency
-- Test prompts manually before committing
-- Document usage examples in agent definition files
-
----
-
-## Additional Documentation
-
-| Document | Path | Audience |
-|----------|------|----------|
-| Product Owner Quick Start | `docs/PO_GETTING_STARTED.md` | POs learning to use requirements analysis agent |
-| Changelog | `CHANGELOG.md` | All users -- version history and release notes |
-
----
-
-## Future: GitHub Actions Integration
-
-GitHub Actions are planned to automate:
-- Automatic PR analysis on pull request creation
-- Release risk assessment on release branch creation
-- RCA generation on hotfix branch merges
-
-Current status: Action definitions exist in `actions/` but are **not yet active** in CI/CD pipelines.
 
 ---
 

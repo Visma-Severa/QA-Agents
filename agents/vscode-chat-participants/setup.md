@@ -52,16 +52,16 @@ If invoked with a configuration file path (e.g., `@hb-setup config.json`), read 
 
 ---
 
-## 3-Phase Workflow
+## 4-Phase Workflow
 
 ```
 User invokes @hb-setup
         |
         v
 Phase 1: Collect — Interactive questions
-        |  - Project identity (name, GitHub org, agent prefix)
+        |  - Project identity (name, agent prefix)
         |  - JIRA configuration (ticket prefixes + repo mappings)
-        |  - Repository inventory (name, category, tech, default branch)
+        |  - Repository inventory (clone URL, category, tech, default branch)
         |  - E2E test frameworks and repo assignments
         |  - Business domains for context files
         |  - Development context docs (optional)
@@ -73,6 +73,7 @@ Phase 2: Generate — Automated file updates
         |  - Update VS Code extension (package.json, extension.ts)
         |  - Update setup scripts (setup.sh, setup.ps1, workspace file)
         |  - Update agent definition files (prefix + examples)
+        |  - Update prompt and template files (project refs + repo-specific sections)
         |  - Create skeleton context files
         |  - Create report directories
         |
@@ -84,7 +85,16 @@ Phase 3: Verify — Scan for inconsistencies
         |  - Report skeleton files that need manual content
         |
         v
-Setup Complete — Next steps summary
+Phase 4: Context Customization — Interactive guided setup
+        |  - Clone repos and set up workspace
+        |  - Generate repository dependencies (auto-scan repos)
+        |  - Generate E2E coverage map (auto-scan test repos)
+        |  - Generate bugfix patterns (if enough hotfix history)
+        |  - Fill JIRA field mappings (guided from repo structure)
+        |  - Domain context files (guided with key questions)
+        |
+        v
+Setup Complete — All context files populated
 ```
 
 ---
@@ -94,9 +104,9 @@ Setup Complete — Next steps summary
 Follow the question flow defined in `prompts/setup/setup-prompt.md`. Store all answers in a structured configuration object.
 
 **Question groups:**
-1. Project identity (3 questions)
+1. Project identity (2 questions: name, agent prefix)
 2. JIRA configuration (variable — depends on number of prefixes)
-3. Repository inventory (variable — per repo: name, category, technology, default branch)
+3. Repository inventory (variable — per repo: clone URL, category, technology, default branch)
 4. E2E test frameworks (variable — framework name + repo assignment)
 5. Business domains (variable — domain names for skeleton context files)
 6. Development context docs (optional — path pattern for architectural docs)
@@ -117,11 +127,12 @@ Follow the question flow defined in `prompts/setup/setup-prompt.md`. Store all a
 | `HealthBridge.code-workspace` | Rename file, update folder list |
 | `.vscode-extension/package.json` | Extension name/publisher/description, chat participant IDs |
 | `.vscode-extension/src/extension.ts` | Agent IDs, prompt file names, repo detection path |
-| `setup/setup.sh` | GITHUB_ORG, REPOS array, workspace filename, brand text |
+| `setup/setup.sh` | REPOS array (name=clone-url entries), workspace filename, brand text |
 | `setup/setup.ps1` | Same as setup.sh (Windows equivalent) |
 | `setup/update.sh` | Workspace filename, extension name |
 | `setup/update.ps1` | Same as update.sh |
 | `agents/vscode-chat-participants/*.md` | Agent prefix in headers, example ticket IDs, context file refs |
+| `prompts/**/*.md` | Project name, repo names, E2E repo paths, example tickets, project descriptions. Rebuild repo-specific tables and per-repo sections (e.g., dev-estimation per-repo breakdown) |
 | `README.md` | Project name, repo tables, examples, setup instructions |
 
 ### Skeleton Context Files to Create
@@ -175,45 +186,157 @@ Report any leftover references with file:line for manual review.
 
 ---
 
+## Phase 4 Details: Context Customization
+
+**This phase runs interactively after verification passes.** The agent guides the user through populating context files with real project data — not just skeletons.
+
+### 4.0 Clone Repositories and Set Up Workspace
+
+Before context generation, repos must be cloned so the agent can scan them:
+
+```
+Phase 3 complete. Now let's populate your context files with real project data.
+
+First, I need to clone your repositories so I can scan them.
+Shall I run the setup script now?
+
+  ./setup/setup.sh          (macOS/Linux)
+  .\setup\setup.ps1         (Windows)
+```
+
+Wait for setup script to complete. If repos are already cloned (user ran setup earlier), skip to 4.1.
+
+### 4.1 Repository Dependencies (Auto-Generated)
+
+```
+Let me scan your repositories and generate the dependency map.
+This identifies API connections, shared databases, and NuGet/npm packages
+across your repos.
+```
+
+Execute `prompts/setup/generate-repository-dependencies.md` automatically:
+- Scan all cloned repos for HTTP client calls, database connection strings, shared packages
+- Generate `context/<project>-repository-dependencies.md` with actual data
+- Show the user a summary of what was found and ask for confirmation
+
+### 4.2 E2E Coverage Map (Auto-Generated)
+
+**Skip if user answered "none" for E2E frameworks in Phase 1.**
+
+```
+Now let me scan your test repositories and map which functional areas
+have E2E coverage.
+```
+
+Execute `prompts/setup/generate-e2e-coverage-map.md` automatically:
+- Scan test repos for test files, group by functional area
+- Generate `context/e2e-test-coverage-map.md` with actual coverage data
+- Show summary to user
+
+### 4.3 Historical Bugfix Patterns (Conditional)
+
+```
+Do your repositories have hotfix history I can analyze?
+This helps agents predict which code patterns are most likely to cause bugs.
+
+I need roughly 10+ hotfixes for meaningful patterns.
+Options:
+  1. Yes, scan my repos now
+  2. Skip for now — I'll run this later when we have more history
+```
+
+If user chooses 1: Execute `prompts/setup/generate-bugfix-patterns.md`
+If user chooses 2: Leave skeleton, note in summary
+
+### 4.4 JIRA Field Mappings (Guided)
+
+```
+Let me scan your repository structures to suggest JIRA component mappings.
+These help agents auto-populate bug report fields from file paths.
+```
+
+- Scan repo directory structures (top-level folders, namespaces)
+- Propose mappings: `<repo>/src/Payments/** → Payments component`
+- Ask user to confirm or adjust each mapping
+- Generate `context/jira-field-mappings.md`
+
+### 4.5 Domain Context Files (Interactive)
+
+For each domain context file created in Phase 2:
+
+```
+Let's fill in the domain knowledge for: [Domain Name]
+This helps agents understand your business rules and validation logic.
+
+I'll ask a few key questions:
+
+1. What are the main business rules for [domain]?
+   (e.g., "prescription refills require doctor approval", "invoices auto-close after 30 days")
+
+2. Are there regulatory or compliance requirements?
+   (e.g., HIPAA, GDPR, SOX, industry-specific rules)
+
+3. What are the common edge cases or tricky scenarios?
+   (e.g., "leap year date calculations", "currency rounding", "timezone handling")
+
+4. What integrations does this domain have with external systems?
+   (e.g., "bank API for payments", "tax authority reporting")
+```
+
+For each domain:
+- Ask the 4 questions above
+- Write answers into the corresponding `context/domain-<name>.md` file
+- If user says "skip" for a domain, leave as skeleton
+
+### 4.6 False Positive Prevention (Optional)
+
+```
+Do you have any known code patterns that look suspicious but are actually
+safe? These prevent agents from flagging false issues during code review.
+
+Examples:
+  - "We use raw SQL in Reports/ — it's parameterized via our ORM wrapper"
+  - "Empty catch blocks in BackgroundJobs/ are intentional — errors are logged upstream"
+
+Type your patterns (one per line), or "skip" to fill in later.
+```
+
+If provided: Update `context/code-review-false-positive-prevention.md`
+If skipped: Leave existing file as-is
+
+---
+
 ## Completion Summary
 
 ```
-Project Setup Complete!
+Setup Complete!
 
-Configuration Applied:
+Configuration:
 - Project: [name]
 - Agent prefix: @[prefix]-*
 - Repositories: [count] ([core] core + [micro] microservice + [e2e] E2E)
 - Ticket prefixes: [list]
-- Domain context files: [count] created
 
 Files Updated: [count]
 Files Created: [count]
 Leftover references: [count] (should be 0)
 
-Skeleton files that need your data:
-  ⚠ context/domain-[name].md — add business rules and regulations (manual)
-  ⚠ context/[project]-repository-dependencies.md — run generation prompt
-  ⚠ context/e2e-test-coverage-map.md — run generation prompt
-  ⚠ context/historical-bugfix-patterns.md — run generation prompt (after 10+ hotfixes)
+Context Files:
+  ✓ context/[project]-repository-dependencies.md — generated from repo scan
+  ✓ context/e2e-test-coverage-map.md — generated from test repo scan
+  ✓/⚠ context/historical-bugfix-patterns.md — [generated / skipped — not enough history]
+  ✓ context/jira-field-mappings.md — generated from repo structure
+  ✓/⚠ context/domain-[name].md — [populated / skeleton — needs manual content]
+  ✓/– context/code-review-false-positive-prevention.md — [updated / kept as default]
 
 Next Steps:
-1. Generate context files using the prompts in prompts/setup/:
-   - prompts/setup/generate-repository-dependencies.md → scans repos, generates dependency map
-   - prompts/setup/generate-e2e-coverage-map.md → scans test repos, generates coverage matrix
-   - prompts/setup/generate-bugfix-patterns.md → analyzes hotfix history (run after 10+ hotfixes)
-   Paste prompt content into AI chat or reference the file to run.
-2. Fill in domain context files manually (context/domain-[name].md)
-3. Rebuild the VS Code extension with your new agent prefix:
+1. Rebuild the VS Code extension:
    cd .vscode-extension && npm install && npm run compile
    npx vsce package --allow-missing-repository
    code --install-extension [prefix]-qa-agents-1.0.0.vsix --force
-3. Clone your repositories and set up the workspace:
-   ./setup/setup.sh          (macOS/Linux)
-   .\setup\setup.ps1         (Windows)
-4. Open [workspace-file].code-workspace
-5. Reload VS Code (F1 > 'Developer: Reload Window')
-6. Test: @[prefix]-code-review [example-ticket]
+2. Open [workspace-file].code-workspace
+3. Reload VS Code (F1 > 'Developer: Reload Window')
+4. Test: @[prefix]-code-review [example-ticket]
 ```
 
 ---
@@ -226,6 +349,8 @@ Next Steps:
 | File not found during Phase 2 | Skip file, report in summary with expected path |
 | Leftover references found in Phase 3 | List all with file:line, recommend manual fix |
 | Extension build fails after setup | Provide manual build commands in summary |
+| Repos not cloned for Phase 4 | Offer to run setup script or skip to manual steps |
+| Context generation finds no data | Create skeleton with note, recommend re-running later |
 
 ---
 
