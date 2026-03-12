@@ -293,19 +293,6 @@ Rebuild with new prefix and correct agent IDs.
 - Update `findRepoRoot()` to check for one of the new core repo names
 - Update activation message
 
-**`README.md`:**
-- Update project name throughout
-- Rebuild repository tables
-- Update setup command examples
-- Update agent usage examples with new prefix and ticket IDs
-- Update release branch convention examples with pattern from Q2.3
-- **Remove DEMO-only sections:**
-  - Remove "This is a demo project" banner (top of file)
-  - Remove "Adapt to Your Project" section and all subsections (Steps 1-7, What Gets Customized, What Stays Generic, Context Files guidance, Building Your Historical Bugfix Patterns)
-  - Remove "Note" section ("This is a demo/reference implementation...")
-  - Remove "Maintained by: HealthBridge QA Team" footer
-  - Remove "Created by" link (or replace with user's team name if provided)
-
 **`prompts/` — All prompt and template files:**
 
 The global find-and-replace (Section 2.1) handles most references automatically. Additionally, these files need structured updates:
@@ -429,7 +416,23 @@ rm -f .vscode-extension/package-lock.json
 
 **Report:** "Cleaned up X DEMO artifacts"
 
-### 2.6 No-E2E Mode
+### 2.6 Update README (Last)
+
+**Update README.md as the final step** — after all other files are updated, context skeletons are created, and DEMO artifacts are cleaned up. The README reflects the final state of the project.
+
+- Update project name throughout
+- Rebuild repository tables with repos, technologies, and default branches from Phase 1
+- Update setup command examples
+- Update agent usage examples with new prefix and ticket IDs
+- Update release branch convention examples with detected/collected pattern
+- **Remove DEMO-only sections:**
+  - Remove "This is a demo project" banner (top of file)
+  - Remove "Adapt to Your Project" section and all subsections (Steps 1-7, What Gets Customized, What Stays Generic, Context Files guidance, Building Your Historical Bugfix Patterns)
+  - Remove "Note" section ("This is a demo/reference implementation...")
+  - Remove "Maintained by: HealthBridge QA Team" footer
+  - Remove "Created by" link (or replace with user's team name if provided)
+
+### 2.7 No-E2E Mode
 
 **When Q4.1 answer is "none" (no E2E test frameworks), apply the following adjustments:**
 
