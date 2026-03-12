@@ -6,7 +6,7 @@
 
 ## When to Run
 
-- After accumulating 10-15+ hotfixes across your repositories (enough data for meaningful patterns)
+- After initial project setup — analyze all available hotfix history (up to 100 hotfixes)
 - Quarterly to update percentages with new hotfix data
 - After major production incidents to capture new pattern categories
 
@@ -16,8 +16,11 @@
 
 **Optional:** User can specify:
 - Time range (default: last 12 months)
+- Maximum hotfixes to analyze (default: 100 — enough for reliable category percentages)
 - Hotfix branch naming convention (default: searches for `hotfix`, `bugfix`, `fix`, `patch` in branch names and commit messages)
 - Specific repositories to analyze (default: all repos in workspace)
+
+**IMPORTANT:** The goal is to analyze a large enough sample (up to 100 hotfixes) to produce **aggregated categories with reliable percentages** — NOT to list individual issues. Each hotfix is classified into a root cause category, and the output shows category totals.
 
 ---
 
@@ -25,7 +28,7 @@
 
 ### Step 1: Find Hotfix Branches and Commits
 
-For each repository in the workspace, fetch latest and search for hotfix-related branches and commits:
+For each repository in the workspace, fetch latest and search for up to **100 hotfix-related branches and commits** (across all repos combined):
 
 ```bash
 git fetch origin
@@ -36,14 +39,16 @@ git branch -r --list "*bugfix*"
 git branch -r --list "*fix*"
 git branch -r --list "*patch*"
 
-# Find hotfix commits on the default branch (merged hotfixes)
-git log origin/main --oneline --grep="hotfix" --since="<start-date>"
-git log origin/main --oneline --grep="bugfix" --since="<start-date>"
-git log origin/main --oneline --grep="fix" --since="<start-date>"
+# Find hotfix commits on the default branch (merged hotfixes) — get up to 100
+git log origin/main --oneline --grep="hotfix" --since="<start-date>" -100
+git log origin/main --oneline --grep="bugfix" --since="<start-date>" -100
+git log origin/main --oneline --grep="fix" --since="<start-date>" -100
 
 # Also check for revert commits (often indicate production issues)
-git log origin/main --oneline --grep="revert" --since="<start-date>"
+git log origin/main --oneline --grep="revert" --since="<start-date>" -50
 ```
+
+**Report progress:** "Found X hotfix branches and Y hotfix commits across Z repositories"
 
 ### Step 2: Analyze Each Hotfix
 
@@ -109,10 +114,13 @@ For each repository group:
 4. Sort categories by percentage (highest first)
 5. Keep top 6-8 categories (merge rare categories below 5% into the nearest match)
 
-**Minimum data thresholds:**
-- **10+ hotfixes:** Generate full pattern table with percentages
-- **5-9 hotfixes:** Generate pattern table but mark as `[Preliminary — based on <N> hotfixes]`
-- **< 5 hotfixes:** List observed categories without percentages, note insufficient data
+**Sample size and confidence:**
+- **50+ hotfixes:** High confidence — full pattern table with reliable percentages
+- **20-49 hotfixes:** Good confidence — full pattern table with percentages
+- **10-19 hotfixes:** Moderate confidence — pattern table marked as `[Preliminary — based on <N> hotfixes]`
+- **< 10 hotfixes:** Low confidence — list observed categories without percentages, note insufficient data
+
+**Target:** Analyze up to 100 hotfixes per repository group for the most reliable percentages.
 
 ### Step 5: Write Detection Focus
 
@@ -122,6 +130,16 @@ For each pattern in each table, add a "Detection Focus" column with **specific e
 - Architectural patterns (e.g., "API endpoint added without corresponding permission in middleware")
 
 ### Step 6: Generate the Output File
+
+**CRITICAL: The output is AGGREGATED CATEGORIES, not a list of individual issues.**
+
+Each row in the pattern table represents a **root cause category** (e.g., "Edge Cases", "NULL Handling") with a percentage calculated from all analyzed hotfixes — NOT individual bug tickets.
+
+| WRONG (individual issues) | CORRECT (aggregated categories) |
+|---------------------------|--------------------------------|
+| VKP-001 Decimal rounding — 10% | Edge Cases — 26% |
+| VKP-002 Timezone handling — 10% | NULL Handling — 18% |
+| VKP-005 Null reference — 10% | Logic/Condition Errors — 16% |
 
 Create `context/historical-bugfix-patterns.md` following the structure of the demo file.
 
@@ -156,8 +174,9 @@ After generating:
 - Percentages in each table must sum to 100% (±2% for rounding)
 - Every repository in the workspace should be mapped to a pattern table
 - Detection Focus should contain project-specific examples, not generic descriptions
-- Tables with fewer than 10 hotfixes should be marked as preliminary
-- Each table should have 5-8 categories (not too granular, not too broad)
+- Tables with fewer than 20 hotfixes should be marked as preliminary
+- Each table should have 5-8 aggregated categories (not individual issues, not too broad)
+- No individual ticket IDs should appear as pattern names — patterns are categories like "Edge Cases", "NULL Handling"
 - The "How Agents Use This File" section should reference actual agent names from the project
 
 ---
@@ -167,7 +186,7 @@ After generating:
 If the project is new or has no identifiable hotfix branches:
 
 1. Generate a starter template with common categories and `?%` placeholders
-2. Include instructions at the top: "Update percentages after analyzing your first 10-15 production hotfixes"
+2. Include instructions at the top: "Update percentages after analyzing your first 20+ production hotfixes (run this prompt again)"
 3. Use industry-standard distributions as a starting point (clearly marked as estimates):
 
 ```markdown

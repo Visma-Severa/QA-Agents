@@ -160,6 +160,13 @@ reports/
 └── requirements-analysis/
 ```
 
+### Cleanup DEMO Artifacts
+
+Delete leftover files from the DEMO template:
+- `.vscode-extension/hb-qa-agents-*.vsix` — old extension package
+- `.vscode-extension/node_modules/`, `dist/`, `package-lock.json` — build artifacts (regenerated during extension rebuild)
+- Old workspace file if renamed (e.g., `HealthBridge.code-workspace`)
+
 ---
 
 ## Phase 3 Details: Verify
