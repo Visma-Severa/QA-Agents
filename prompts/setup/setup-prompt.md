@@ -86,14 +86,38 @@ List your E2E test automation repositories (if any).
 One clone URL per line, empty line when done. Type "none" if not applicable.
 ```
 
-**Q3.4** — For each repository, ask:
+**Note:** The repo name is extracted from the clone URL (e.g., `acme-backend` from `https://github.com/acme-corp/acme-backend.git`). Repos can be in different GitHub organizations.
+
+**Q3.4** — Clone repositories and auto-detect technology
+
+**Immediately after Q3.1–Q3.3 are answered, clone all repositories** to the workspace before asking about technology or default branch. This allows the agent to auto-detect repo details instead of relying on the user to know them.
+
 ```
-<repo-name>:
-  Technology? (e.g., "C# / .NET Core", "TypeScript / React", "Python / Django")
-  Default branch? (main / master / develop)
+I'll clone your repositories now so I can detect technologies automatically...
 ```
 
-**Note:** The repo name is extracted from the clone URL (e.g., `acme-backend` from `https://github.com/acme-corp/acme-backend.git`). Repos can be in different GitHub organizations.
+For each repo:
+1. Clone to workspace: `git clone <url> <workspace-root>/<repo-name>`
+2. Auto-detect technology from project files:
+   - `.csproj` / `.sln` → C# / .NET Core
+   - `package.json` + framework detection → TypeScript / React, Node.js, etc.
+   - `pubspec.yaml` → Flutter / Dart
+   - `requirements.txt` / `pyproject.toml` → Python
+   - `pom.xml` / `build.gradle` → Java / Spring
+3. Auto-detect default branch: `git remote show origin | grep "HEAD branch"`
+
+Present findings for confirmation:
+```
+Detected repository details:
+
+  acme-backend:    C# / .NET Core    default branch: main
+  acme-frontend:   TypeScript / React default branch: main
+  acme-mobile:     Flutter / Dart     default branch: develop
+
+Is this correct? (yes / edit)
+```
+
+If auto-detection fails for a repo (e.g., empty repo, no recognizable project files), ask the user for that repo only.
 
 ### Group 4: E2E Test Frameworks
 
@@ -483,21 +507,7 @@ Proceeding to Phase 4: Context Customization...
 
 **This phase runs interactively after verification.** The agent guides the user through populating context files with real project data instead of leaving empty skeletons.
 
-### 4.0 Clone Repositories
-
-Before context generation, repos must be available for scanning.
-
-```
-Phase 3 complete. Now let's populate your context files with real project data.
-
-First, I need your repositories cloned so I can scan them.
-Shall I run the setup script now?
-
-  ./setup/setup.sh          (macOS/Linux)
-  .\setup\setup.ps1         (Windows)
-```
-
-Wait for completion. If repos are already cloned, skip to 4.1.
+**Note:** Repositories were already cloned during Phase 1 (Q3.4). No additional cloning step is needed.
 
 ### 4.1 Repository Dependencies (Auto-Generated)
 

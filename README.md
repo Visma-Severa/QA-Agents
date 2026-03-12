@@ -856,7 +856,7 @@ It asks questions about your project, then updates all configuration files autom
 1. **Collect** — Project name, agent prefix, JIRA prefixes, repository clone URLs, tech stack, business domains
 2. **Generate** — Updates IDE configs, extension, setup scripts, agent definitions, prompts, and templates
 3. **Verify** — Scans for leftover demo references, validates consistency across all files
-4. **Context Customization** — Clones repos, then auto-generates repository dependencies, E2E coverage map, JIRA mappings, and guides you through domain knowledge and bugfix patterns
+4. **Context Customization** — Auto-generates repository dependencies, E2E coverage map, JIRA mappings, and guides you through domain knowledge and bugfix patterns
 
 ### What Gets Customized
 

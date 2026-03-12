@@ -86,7 +86,6 @@ Phase 3: Verify — Scan for inconsistencies
         |
         v
 Phase 4: Context Customization — Interactive guided setup
-        |  - Clone repos and set up workspace
         |  - Generate repository dependencies (auto-scan repos)
         |  - Generate E2E coverage map (auto-scan test repos)
         |  - Generate bugfix patterns (if enough hotfix history)
@@ -106,7 +105,7 @@ Follow the question flow defined in `prompts/setup/setup-prompt.md`. Store all a
 **Question groups:**
 1. Project identity (2 questions: name, agent prefix)
 2. JIRA configuration (variable — depends on number of prefixes)
-3. Repository inventory (variable — per repo: clone URL, category, technology, default branch)
+3. Repository inventory (variable — clone URLs by category, then **clone immediately** and auto-detect technology + default branch)
 4. E2E test frameworks (variable — framework name + repo assignment)
 5. Business domains (variable — domain names for skeleton context files)
 6. Development context docs (optional — path pattern for architectural docs)
@@ -190,21 +189,7 @@ Report any leftover references with file:line for manual review.
 
 **This phase runs interactively after verification passes.** The agent guides the user through populating context files with real project data — not just skeletons.
 
-### 4.0 Clone Repositories and Set Up Workspace
-
-Before context generation, repos must be cloned so the agent can scan them:
-
-```
-Phase 3 complete. Now let's populate your context files with real project data.
-
-First, I need to clone your repositories so I can scan them.
-Shall I run the setup script now?
-
-  ./setup/setup.sh          (macOS/Linux)
-  .\setup\setup.ps1         (Windows)
-```
-
-Wait for setup script to complete. If repos are already cloned (user ran setup earlier), skip to 4.1.
+**Note:** Repositories were already cloned during Phase 1 (Q3.4). No additional cloning step is needed.
 
 ### 4.1 Repository Dependencies (Auto-Generated)
 
@@ -349,7 +334,7 @@ Next Steps:
 | File not found during Phase 2 | Skip file, report in summary with expected path |
 | Leftover references found in Phase 3 | List all with file:line, recommend manual fix |
 | Extension build fails after setup | Provide manual build commands in summary |
-| Repos not cloned for Phase 4 | Offer to run setup script or skip to manual steps |
+| Repo clone fails in Q3.4 | Report error, ask user to check access, continue with remaining repos |
 | Context generation finds no data | Create skeleton with note, recommend re-running later |
 
 ---
