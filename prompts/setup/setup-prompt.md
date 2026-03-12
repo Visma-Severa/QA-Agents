@@ -42,12 +42,17 @@ Keep it short (2-4 chars). This creates agents like @<prefix>-code-review.
 Example: "acme", "fal", "mt"
 ```
 
-### Group 2: Repositories (Collect URLs → Clone → Auto-Detect)
+### Group 2: Repositories
 
-**Q2.1** — All repository clone URLs
+**CRITICAL RULES FOR THIS GROUP:**
+- **DO NOT ask the user about technology stack** — you will auto-detect it after cloning
+- **DO NOT ask the user about default branch** — you will auto-detect it after cloning
+- **DO NOT ask the user about release/hotfix branch conventions** — you will auto-detect from git history
+- **ONLY ask for clone URLs and categories** — then CLONE, then AUTO-DETECT everything else
+
+**Q2.1** — Repository clone URLs
 ```
-List ALL your repository clone URLs (HTTPS or SSH).
-Group them by category — I'll ask which is which.
+List your repository clone URLs (HTTPS or SSH).
 One per line, empty line when done.
 
 Example:
@@ -62,56 +67,62 @@ For each repo, which category?
   - Core (main product repos)
   - Microservice (API services)
   - E2E (test automation)
-
-<repo-1>: Core / Microservice / E2E?
-<repo-2>: Core / Microservice / E2E?
-...
 ```
 
-**Q2.3** — Clone immediately and auto-detect
+**Q2.3** — IMMEDIATELY clone and auto-detect
 
-**As soon as URLs and categories are confirmed, clone ALL repositories immediately.** Do not wait for later questions. This allows auto-detection of technology, branches, and conventions.
+**STOP asking questions. Clone ALL repositories NOW before continuing to Group 3.**
 
 ```
 Cloning your repositories now...
 ```
 
-For each repo:
-1. Clone to workspace: `git clone <url> <workspace-root>/<repo-name>`
-2. Auto-detect technology from project files:
-   - `.csproj` / `.sln` → C# / .NET Core
-   - `package.json` + framework detection → TypeScript / React, Node.js, etc.
-   - `pubspec.yaml` → Flutter / Dart
-   - `requirements.txt` / `pyproject.toml` → Python
-   - `pom.xml` / `build.gradle` → Java / Spring
-3. Auto-detect default branch: `git remote show origin | grep "HEAD branch"`
-4. Auto-detect release branch convention: `git branch -r --list "*release*"` — look for patterns
-5. Auto-detect hotfix branch convention: `git branch -r --list "*hotfix*" "*bugfix*" "*fix*"`
+Execute these steps — do NOT skip any:
 
-Present ALL findings for confirmation:
+**Step A: Clone each repo**
+```bash
+git clone <url> <workspace-root>/<repo-name>
 ```
-Detected repository details:
+If a repo already exists locally, skip cloning but still run detection.
 
-  acme-backend:    C# / .NET Core    default branch: main     [Core]
-  acme-frontend:   TypeScript / React default branch: main     [Core]
-  acme-e2e-tests:  TypeScript         default branch: main     [E2E]
+**Step B: Auto-detect technology** (scan project files in the cloned repo)
+| File Found | Technology |
+|------------|-----------|
+| `.csproj` or `.sln` | C# / .NET Core |
+| `package.json` with `react` | TypeScript / React |
+| `package.json` with `playwright` or `cypress` | TypeScript / Test Automation |
+| `pubspec.yaml` | Flutter / Dart |
+| `requirements.txt` or `pyproject.toml` | Python |
+| `pom.xml` or `build.gradle` | Java / Spring |
 
-Release branch pattern detected: release/v*  (from: release/v2.0.0, release/v2.1.0)
-Hotfix branch pattern detected:  hotfix/*    (from: hotfix/ACM-1234, hotfix/ACM-1567)
+**Step C: Auto-detect default branch**
+```bash
+git -C <repo-path> remote show origin | grep "HEAD branch"
+```
+
+**Step D: Auto-detect branch conventions**
+```bash
+git -C <repo-path> branch -r --list "*release*"
+git -C <repo-path> branch -r --list "*hotfix*" "*bugfix*" "*fix*"
+```
+
+**Step E: Present ALL findings for confirmation**
+```
+Cloned and detected:
+
+  acme-backend:    C# / .NET Core     main     [Core]
+  acme-frontend:   TypeScript / React  main     [Core]
+  acme-e2e-tests:  TypeScript          main     [E2E]
+
+Release branch convention: release/v*  (found: release/v2.0.0, release/v2.1.0)
+Hotfix branch convention:  hotfix/*    (found: hotfix/ACM-1234, hotfix/ACM-1567)
 
 Is this correct? (yes / edit)
 ```
 
-If auto-detection fails for a repo (e.g., empty repo, no recognizable project files), ask the user for that repo only.
-If no release/hotfix branches are found, ask the user:
-
-```
-I didn't find release branches in your repos. What is your release branch convention?
-Examples: release/Release-04/2026, release/v2.1.0, release/sprint-42
-Type "none" if you don't use release branches.
-```
-
-**Note:** The repo name is extracted from the clone URL (e.g., `acme-backend` from `https://github.com/acme-corp/acme-backend.git`). Repos can be in different GitHub organizations.
+- If auto-detection fails for a repo, ask the user for that repo only
+- If no release/hotfix branches found, ask the user for the convention
+- The repo name is extracted from the clone URL (e.g., `acme-backend` from `https://github.com/acme-corp/acme-backend.git`)
 
 ### Group 3: JIRA Configuration
 

@@ -10,14 +10,15 @@
 
 | File | Role | Path |
 |------|------|------|
-| Setup flow | Prompt | `prompts/setup/setup-prompt.md` |
+| Setup flow | **MUST READ FIRST** | `prompts/setup/setup-prompt.md` |
 | Domain skeleton | Template | `context/domain-context-template.md` |
 
-**Before starting setup:**
+**MANDATORY — Read these files BEFORE asking any questions:**
 ```
 Read: prompts/setup/setup-prompt.md
 Read: context/domain-context-template.md
 ```
+**The setup prompt file defines the EXACT questions and order. Do NOT improvise your own questions.**
 
 ---
 
@@ -46,7 +47,11 @@ The bootstrap script copies all framework files into a fresh directory without m
 
 Unlike other agents that execute immediately, this agent guides the user through a multi-step configuration wizard.
 
-If invoked without input, begin the interactive flow immediately per `prompts/setup/setup-prompt.md`.
+**MANDATORY FIRST STEP:** Before asking ANY questions, you MUST read the setup prompt file:
+```
+Read: prompts/setup/setup-prompt.md
+```
+This file contains the EXACT questions to ask, in the EXACT order. **DO NOT invent your own questions.** DO NOT ask about technology stack, programming languages, or frameworks — these are auto-detected after cloning repos. Follow the prompt file word-for-word.
 
 If invoked with a configuration file path (e.g., `@hb-setup config.json`), read the file and skip to Phase 2 (Generate).
 
