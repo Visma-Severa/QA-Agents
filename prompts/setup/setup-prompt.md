@@ -250,6 +250,16 @@ Build these replacement pairs from the collected answers:
 | `HealthBridge.code-workspace` | `<project-name>.code-workspace` | Setup scripts, README |
 | `release/Release-04/2026` | `<release-branch-pattern-example>` | README, CLAUDE.md, release agent, prompts |
 | `hotfix/` (branch convention) | `<hotfix-branch-pattern>` | CLAUDE.md, bugfix-rca agent, generate-bugfix-patterns prompt |
+| `3 frameworks` | `<N> framework(s)` where N = count from Q4.1 | README.md, CHANGELOG.md, context/e2e-test-coverage-map.md |
+| `all 3 frameworks` | `all <N> frameworks` or `the <framework-name> framework` (if N=1) | README.md, CHANGELOG.md |
+| `Selenium, Playwright, Mobile` | Comma-separated list of actual framework names from Q4.1 | README.md, CHANGELOG.md, CLAUDE.md, .cursorrules, .github/copilot-instructions.md, prompts, agents |
+| `Selenium/Playwright/Mobile` | Slash-separated list of actual framework names from Q4.1 | Prompts, templates, context files |
+| `Selenium (Python)`, `Playwright (TypeScript)`, `Mobile (WebdriverIO)` | Actual framework names with their technologies from Q4.2 | context/e2e-test-coverage-map.md |
+| `4-row format (Selenium UI + Selenium Integration + Playwright + Mobile)` | Rebuild with actual frameworks from Q4.1 | context/e2e-test-coverage-map.md |
+| `Selenium UI / Selenium Integration / Playwright / Mobile` | Rebuild coverage table rows with actual frameworks from Q4.1 | All template files with E2E coverage tables |
+| `3 test automation frameworks (Selenium, Playwright E2E, Mobile)` | `<N> test automation framework(s) (<comma-separated list>)` | CHANGELOG.md |
+
+**Note on E2E framework references:** The DEMO template hardcodes "3 frameworks" and "Selenium/Playwright/Mobile" throughout. When a project has fewer (or more) E2E frameworks, ALL these references must be dynamically replaced with the actual count and names. Search for `3 framework`, `Selenium`, `Playwright`, and `Mobile` across all files to catch every occurrence.
 
 ### 2.2 Structured Updates (Not Simple Find-Replace)
 
@@ -590,7 +600,7 @@ chmod +x scripts/check-legacy-demo.sh
 ./scripts/check-legacy-demo.sh --fix-plan
 ```
 
-The script checks 6 categories: project names, ticket prefixes, repository names, domain terms, DEMO template references, and E2E/mobile framework references. It also detects deleted files still referenced in active documentation.
+The script checks 6 categories: project names, ticket prefixes, repository names, domain terms, DEMO template references, and E2E/mobile framework references (including hardcoded framework counts like "3 frameworks"). It also detects deleted files still referenced in active documentation.
 
 **Interpret the output:**
 - **0 hits** → Phase 3 passes, proceed to consistency checks (3.2)
@@ -605,7 +615,7 @@ The script checks 6 categories: project names, ticket prefixes, repository names
 | `REPO_NAME` | Replace old repo names with collected repo names in affected files |
 | `DOMAIN_TERM` | Replace healthcare examples with project-relevant examples (use domains from Q5.1) |
 | `DEMO_REF` | Remove or rewrite DEMO-specific instructions in affected files |
-| `E2E_LEGACY` | If no-E2E mode (Q4.1 = "none"): apply Section 2.7 to affected files. If E2E configured: replace with collected framework names |
+| `E2E_LEGACY` | If no-E2E mode (Q4.1 = "none"): apply Section 2.7 to affected files. If E2E configured: replace DEMO framework names with collected framework names AND replace hardcoded counts ("3 frameworks", "4-row") with actual counts from Q4.1 |
 
 **After auto-fix, re-run:**
 ```bash
